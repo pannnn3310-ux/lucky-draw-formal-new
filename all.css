@@ -96,17 +96,6 @@ ol, ul {
 .slot .reel:last-child {
   border-right: none;
 }
-.slot .symbol.winner-highlight {
-  font-size: 1.3em;
-  font-weight: bold;
-  background: rgba(208, 103, 87, 0.2);
-}
-@media (max-width: 768px) {
-  .slot .symbol.winner-highlight {
-    font-size: 26px;
-    white-space: nowrap;
-  }
-}
 
 .stick {
   position: relative;
@@ -347,6 +336,12 @@ ol, ul {
   font-weight: 800;
   letter-spacing: .3em;
 }
+
+.slot {
+  --draw-highlight-color: #d64242;
+  --draw-highlight-background: #d64242;
+}
+
 .slot .reel { flex: 1 1 25%; min-width: 0; }
 .slot .digit-symbol {
   font-size: 4.5rem;
@@ -354,9 +349,89 @@ ol, ul {
   color: #26384d;
   text-align: center;
 }
+
+.slot .digit-symbol.winner-highlight {
+  font-weight: 900;
+
+  color: #fff !important;
+
+  background: var(--draw-highlight-background);
+
+  transform: none !important;
+  transition: none !important;
+
+  text-shadow:
+    0 0 10px rgba(255, 255, 255, 0.25),
+    0 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* ===== 拉霸停止同步修正 ===== */
+
+.slot .symbol,
+.slot .digit-symbol {
+  transition: none !important;
+}
+
 .slot .digit-symbol.winner-highlight {
   font-size: 5.2rem;
-  color: #d64545;
-  background: rgba(255, 215, 0, .25);
-  text-shadow: 0 2px 0 #fff;
+  font-weight: 900;
+
+  color: #fff !important;
+
+  background: var(--draw-highlight-background);
+
+  transform: none !important;
+
+  transition: none !important;
+
+  text-shadow:
+    0 0 10px rgba(255, 255, 255, 0.25),
+    0 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+#scroll-area {
+  position: relative;
+}
+
+.stop-indicator {
+  position: absolute;
+
+  top: 90px;
+  height: 90px;
+
+  width: 25%;
+
+  z-index: 20;
+  pointer-events: none;
+
+  opacity: 0;
+
+  border: 6px solid var(--draw-highlight-color);
+  background-color: var(--draw-highlight-background);
+
+  box-shadow:
+    inset 0 0 16px rgba(214, 66, 66, 0.3),
+    0 0 16px rgba(214, 66, 66, 0.45);
+
+  transition: none !important;
+}
+
+.stop-indicator[data-reel-index="0"] {
+  left: 0;
+}
+
+.stop-indicator[data-reel-index="1"] {
+  left: 25%;
+}
+
+.stop-indicator[data-reel-index="2"] {
+  left: 50%;
+}
+
+.stop-indicator[data-reel-index="3"] {
+  left: 75%;
+}
+
+.stop-indicator.is-visible {
+  opacity: 1;
 }
