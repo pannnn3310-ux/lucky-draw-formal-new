@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>中獎名單</title>
+    <meta name="viewport"
+    content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+<body>
+  <div class="main my-5">
+    <audio id="bgm" src="./music/runrunman.mp3" loop preload="auto"></audio>
+      <div class="container">
+          <div class="row">
+              <div class="col-2 smore-img">
+                <div class="prize-tabs ">
+                  <button data-prize="all" class="activebtn btn btn-light">全部</button>
+                  <button data-prize="1" class="btn btn-light">頭獎</button>
+                  <button data-prize="2" class="btn btn-light">二獎</button>
+                  <button data-prize="3" class="btn btn-light">三獎</button>
+                  <button data-prize="4" class="btn btn-light">四獎</button>
+                  <button data-prize="5" class="btn btn-light">五獎</button>
+                  <button data-prize="6" class="btn btn-light">六獎</button>
+                  <button data-prize="7" class="btn btn-light">七獎</button>
+                  <button data-prize="8" class="btn btn-light">八獎</button>
+                  <button data-prize="9" class="btn btn-light">幸運分享獎</button>
+                  <button data-prize="10" class="btn btn-light">現金加碼獎</button>
+                  <button data-prize="12" class="btn btn-light">追加獎</button>
+                  <button data-prize="11" class="btn btn-light">特別追加獎</button>
+                  <button data-prize="13" class="btn btn-light">東莞大寶-熱情贊助獎</button>
+                </div>
+              </div>
+              <div class="col-12 d-flex justify-content-center align-items-center bg-light p-5">
+                  <ul id="winner-list"
+                  class="fs-3 "></ul>
+              </div>
+          </div>
+      </div>
+  </div>
+
+<style>
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+
+  background-image:
+      radial-gradient(
+      circle at center,
+      rgba(255,255,255,0.03),
+      rgba(255,255,255,0) 50%
+      ),
+      linear-gradient(
+      180deg,
+      rgba(30,42,56,0.9),
+      rgba(74,94,113,0.7)
+      ),
+      url('prizeimg.jpg');
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, center;
+  background-size: cover;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+  }
+
+li {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+li span {
+  display: inline-block;
+}
+
+.smore-img {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  height: 200px;
+  background-image:
+    radial-gradient(
+      circle at center,
+      rgba(189, 7, 7, 0.03),
+      rgba(234, 182, 182, 0) 50%
+      ),
+      linear-gradient(
+      180deg,
+      rgba(30,42,56,0.9),
+      rgba(94, 105, 114, 0.7)
+      ),
+  url('happynewyear.jpg');
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, center;
+  background-size: cover;
+}
+.smore-img::before {
+  position: absolute;
+  content: '中獎名單';
+  top: 5%;
+  left: 36%;
+  font-size: 100px;
+  font-weight: 600;
+  color: #eee;
+}
+
+.prize-tabs {
+  position: absolute;
+  bottom: 3%;
+  button {
+    font-size: 20px;
+    font-weight: 500;
+    padding: 10px;
+    margin: 0 1px;
+  }
+}
+
+.right-col {
+  display: flex;
+  justify-content: end;
+  flex: 1;
+  text-align: left;
+}
+
+.center-col {
+  display: flex;
+  justify-content: end;
+  flex: 1;
+  text-align: end;
+}
+</style>
+<script>
+  const list = document.getElementById('winner-list');
+  const winnerData = JSON.parse(localStorage.getItem('winnerData') || '[]');
+
+  winnerData.sort((a, b) => {
+      if (a.prizeValue !== b.prizeValue) return a.prizeValue - b.prizeValue;
+      return a.drawOrder - b.drawOrder;
+  });
+
+  const bgm = document.getElementById('bgm');
+
+  bgm.volume = 0;          // 起始音量 0
+  const targetVolume = 1; // 最終音量（自己調，0~1）
+  const fadeDuration = 3000; // 淡入時間（毫秒）
+
+  function fadeInMusic() {
+    bgm.play().catch(() => {
+    });
+
+    const stepTime = 50;
+    const step = targetVolume / (fadeDuration / stepTime);
+
+    const fadeInterval = setInterval(() => {
+      if (bgm.volume < targetVolume) {
+        bgm.volume = Math.min(bgm.volume + step, targetVolume);
+      } else {
+        clearInterval(fadeInterval);
+      }
+    }, stepTime);
+  }
+
+  document.addEventListener('click', function startOnce() {
+    fadeInMusic();
+    document.removeEventListener('click', startOnce);
+  });
+
+function renderList(data) {
+  list.innerHTML = '';
+
+  data.forEach(w => {
+    const li = document.createElement('li');
+
+    const bonusText = w.specialBonus ? `  ${w.specialBonus}` : '';
+    const amountText = w.prizeAmounts ? w.prizeAmounts : '';
+
+    const shareHTML = (w.prizeValue === 9 && w.shareToName)
+    ? `<div class="left-col fs-4">分享人：${w.shareToName}</div>`
+    : '';
+
+    li.innerHTML = `
+      <span class="left-col fs-4">
+        ${w.prize}【金額：${amountText}${bonusText}元】
+      </span>
+      <span class="center-col fs-4">${shareHTML}</span>
+      <span class="right-col fs-4">
+        ${w.dept} - ${w.name}
+      </span>
+    `;
+    list.appendChild(li);
+  });
+}
+const buttons = document.querySelectorAll('.prize-tabs button');
+
+buttons.forEach(btn => {
+  btn.addEventListener('click', () => {
+
+    buttons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const prize = btn.dataset.prize;
+
+    if (prize === 'all') {
+      renderList(winnerData);
+    } else {
+      const filtered = winnerData.filter(
+        w => w.prizeValue === Number(prize)
+      );
+      renderList(filtered);
+    }
+  });
+});
+renderList(winnerData);
+
+
+
+</script>
+
+</body>
+</html>

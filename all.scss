@@ -1,0 +1,444 @@
+* {
+  box-sizing: border-box;
+  font-family: "Noto Sans TC", "微軟正黑體", sans-serif;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #1E2A38;
+}
+
+
+/* 全視覺背景 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+
+  background-image:
+    radial-gradient(
+      circle at center,
+      rgba(255,255,255,0.03),
+      rgba(255,255,255,0) 50%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(30,42,56,0.9),
+      rgba(74,94,113,0.7)
+    ),
+    url('Standar-Logo-with-Tagline-Horizontal.jpg');
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, center;
+  background-size: cover;
+}
+
+
+ol, ul {
+	list-style: none;
+}
+
+
+.main {
+  position: relative;
+  overflow: hidden;
+  min-height: 900px;
+  padding-top: 150px;
+
+  .container {
+    position: relative;
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0);
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  &.active {
+    .overlay {
+      background: rgba(90, 87, 87, 0.7);
+    }
+  }
+}
+
+.slot {
+  width: 100%;
+  height: 400px;
+  position: relative;
+  z-index: 10;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    #F8D97E 0%,
+    #F4C27A 60%,
+    #f7c188 100%
+  );
+  border: 2px solid #fff9c7;
+  border-radius: 20px;
+  box-shadow:
+    0 10px 25px rgba(0,0,0,0.35),
+    inset 0 2px 4px rgba(255, 255, 255, 0.25);
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      right: 0px;
+      bottom: 0px;
+      border: 6px dotted #fff9c7;
+      border-radius: 20px;
+      pointer-events: none;
+    }
+
+
+  .row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    }
+
+  .scroll-viewport {
+    height: 270px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .reel {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .symbol {
+    height: 90px;
+    line-height: 90px;
+    font-weight: bold;
+  }
+  .reel {
+  border-right: 1px solid #acacac;
+    &:last-child {
+      border-right: none;
+    }
+  }
+
+  //中獎後框住
+  .symbol.winner-highlight {
+    font-size: 1.3em;
+    font-weight: bold;
+    background: rgba(208, 103, 87, 0.2);
+    @media (max-width: 768px) {
+      font-size: 26px;
+      white-space:nowrap;
+    }
+  }
+}
+
+.stick {
+  position: relative;
+  z-index: 15;
+  right: -2px;
+  background-color: transparent;
+  height: 300px;
+  &::before {
+    content: '';
+    position: absolute;
+    width: 80px;
+    height: 30px;
+    top: 77%;
+    left: -30%;
+    background: linear-gradient(85deg,rgba(255, 176, 79, 1) 0%, rgba(255, 182, 105, 1) 0%, #f7c188 100%);
+    border: 1.5px solid #fff9c7;
+    border-left: 0px;
+    border-radius: 0 20px 20px 0px;
+  }
+}
+
+.lottery-button {
+  position: absolute;
+  width: 25px;
+  height: 120px;
+  top: 47%;
+  left: 30px;
+  background: linear-gradient(-85deg, #f0b14f 0%, #fcc488 60%);
+  border: 2.5px solid #ffc7c7;
+  border-radius: 30px;
+  box-shadow: 0px 1px 2px rgba(245,17,17,0.1);
+  transform-origin: bottom center;
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  &::after {
+      content: '';
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      top: -30px;
+      left: -22px;
+      background: linear-gradient(30deg, #D64545 40%, #FF7A6A 100%);
+      border: 1px solid #fa6b6b;
+      border-radius: 50%;
+      transition: top 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      box-shadow: 0 0 10px rgba(255, 77, 77, 0.5),
+      0 0 20px rgba(255, 77, 77, 0.3),
+      0 0 30px rgba(255, 77, 77, 0.2);
+      animation: glow 2s infinite ease-in-out;
+    }
+  }
+  .no-glow::after {
+    animation: none;
+    box-shadow: none;
+  }
+.lottery-button.pull {
+  top: 75%;
+  height: 27px;
+}
+.lottery-button.pull::after {
+  top: 5px;
+}
+
+.trigger-draw {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  top: -30px;
+  left: -22px;
+  background: transparent;
+  border: none;
+  z-index: 2;
+  &:active {
+    transform: translateY(4px);
+  }
+}
+
+
+#prize-btn {
+  position: relative;
+}
+
+#prize-btn.dropdown-toggle {
+  font-size: 3.5rem;
+  font-weight: 500;
+  letter-spacing: 0.3vw;
+  color :#D64545;
+  -webkit-text-stroke: 7px rgb(255, 255, 255);
+  paint-order: stroke;
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+
+#prize-btn + .dropdown-menu {
+  left: 50% !important;
+  top: 100% !important;
+  font-size: 20px;
+  transform: translateX(-50%) !important;
+}
+
+//側邊結果
+.right-panel {
+  width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(255, 255, 255, 0.25);
+  padding: 1em;
+  h3 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #D64545;
+    text-shadow:
+      1px 1px 0 #fff,
+    -1px 1px 0 #fff,
+      1px -1px 0 #fff,
+    -1px -1px 0 #fff; /* 模擬描邊 */
+    letter-spacing: 0.1vw;
+    margin: 10px 0px 26px 0;
+  }
+}
+
+.winner-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  li {
+    font-size: 1em;
+    font-weight: bold;
+    color: #4f6075;
+    background-color: #fffaf0;;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 0.5em;
+    padding: 0.5em;
+  }
+  p {
+    margin: 30px 0;
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255,77,77,0.2),
+                0 0 10px rgba(255,77,77,0.3),
+                0 0 20px rgba(255,77,77,0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255,77,77,0.7),
+                0 0 40px rgba(255,77,77,0.5),
+                0 0 60px rgba(255,77,77,0.3);
+  }
+}
+
+.freeze-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  backdrop-filter: none;
+  pointer-events: none;
+  transition: 0.3s ease;
+}
+
+.freeze-overlay.active {
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+}
+
+/* --- 超狂電視壞掉效果 --- */
+.glitch-tv {
+  position: relative;
+  animation: tv-shake 0.25s infinite, tv-flicker 0.3s infinite alternate;
+}
+
+/* RGB 分裂 */
+.glitch-tv::before,
+.glitch-tv::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  clip-path: inset(0 0 0 0);
+}
+
+.glitch-tv::before {
+  left: 4px;
+  text-shadow: -4px 0 red;
+  animation: glitch-slice 0.25s infinite;
+}
+
+.glitch-tv::after {
+  left: -4px;
+  text-shadow: 4px 0 rgb(0, 0, 0);
+  animation: glitch-slice 0.3s infinite reverse;
+}
+
+
+/* 主畫面震動 */
+@keyframes tv-shake {
+  0% { transform: translate(0); }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -2px); }
+  60% { transform: translate(-2px, 1px); }
+  80% { transform: translate(2px, -1px); }
+  100% { transform: translate(0); }
+}
+
+/* 閃爍 + 噪波 */
+@keyframes tv-flicker {
+  0% { opacity: 0.9; filter: contrast(1) brightness(1); }
+  50% { opacity: 0.5; filter: contrast(1.4) brightness(0.7); }
+  100% { opacity: 1; filter: contrast(0.8) brightness(1.2); }
+}
+
+.long-flash {
+  animation-duration: 3s !important;
+}
+
+//抽獎動畫
+
+
+
+#hand-animation-container {
+  width: 400px;
+  height: 400px;
+  position: absolute;
+  right: -80px;
+  top: 120px;
+  display: none;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(2px);
+  z-index: 99999;
+}
+
+.check-style {
+  font-size: 30px;
+}
+
+@keyframes start {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.2),
+                0 0 10px rgba(161, 161, 161, 0.3),
+                0 0 20px rgba(255, 255, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(219, 219, 219, 0.858),
+                0 0 20px rgba(154, 154, 154, 0.901),
+                0 0 30px rgba(241, 241, 241, 0.928);
+  }
+}
+
+#special-balance-btn {
+  animation: start 3s infinite ease-in-out;
+  text-shadow: 0 0 50px #fff,0 0 150px #fff,0 0 20px #fff;
+  font-weight: 400;
+}
+
+
+
+.cash-bonus-label{
+  color :#c05b13;
+  -webkit-text-stroke: 5px rgb(255, 255, 255);
+  paint-order: stroke;
+  margin-left: 45%;
+}
+
+//跑馬燈
+
+.bg-marquee {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 70px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+  background: rgba(0,0,0,0.2);
+}
+
+.bg-marquee-track {
+  display: inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  animation: bg-marquee 20s linear infinite;
+  color: #fff;
+  font-weight: bold;
+  font-size: 40px;
+  text-align: center;
+}
+
+@keyframes bg-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.p-6 {
+  padding-top: 80px;
+}

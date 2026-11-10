@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8">
+  <title>尾牙摸彩系統</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+  integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <link rel="stylesheet" href="all.css">
+</head>
+
+<body>
+  <div class="main">
+    <div class="overlay"></div>
+    <audio id="draw-sound" src="./music/Prize.mp3" preload="auto"></audio>
+    <audio id="win-don" src="./music/don.mp3" preload="auto"></audio>
+    <audio id="win-sound" src="./music/win.mp3" preload="auto"></audio>
+    <audio id="draw-sound-1" src="./music/FirstPrize.mp3" preload="auto"></audio>
+    <audio id="cheer" src="./music/cheer.mp3" preload="auto"></audio>
+    <audio id="bi" src="./music/Bi.mp3" preload="auto"></audio>
+    <div class="container">
+      <div class="row">
+      <div class="bg-marquee">
+        <div class="bg-marquee-track">
+          <div>
+            <span class="pe-5">1.兌獎方式：身分證件/可接受手機提供截圖。</span>
+            <span class="pe-5">2.唱名兩次，未到或不在現場，將以幸運分享獎出清。</span>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- mobile -->
+        <div class="d-block d-lg-none">
+          <div class="upload-section">
+            <label class="text-light">匯入名單（Excel）：
+              <input type="file" id="file-input" accept=".xlsx" />
+            </label>
+          </div>
+        </div>
+      <!-- mobile -->
+
+        <div class="col-lg-7 col-md-12 col-sm-12 text-center">
+          <div class="mb-2">
+            <div class="dropdown pb-3 d-flex justify-content-center align-items-center align-items-lg-stretch">
+              <div class="d-flex flex-column justify-content-center align-content-end">
+                <button id="prize-btn" class="btn dropdown-toggle"
+                type="button" data-bs-toggle="dropdown" aria-expanded="false" data-value="">
+                尾牙摸彩系統
+                </button>
+                  <ul class="dropdown-menu text-center">
+                    <li>
+                      <a class="dropdown-item" href="#" data-value="8">八獎</a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" data-value="7">七獎</a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" data-value="6">六獎</a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" data-value="5">五獎</a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" data-value="13">東莞大寶-熱情贊助獎</a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" data-value="4">四獎</a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" data-value="3">三獎</a>
+                    </li>
+                                        <li>
+                      <a class="dropdown-item" href="#" data-value="2">二獎</a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" data-value="1">頭獎</a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" data-value="9">幸運分享獎</a>
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="#" data-value="10">現金加碼獎</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#" data-value="12">追加獎</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#" data-value="11">特別追加獎</a>
+                    </li>
+                  </ul>
+                  <div id="cash-bonus-label" class="cash-bonus-label mt-5 fs-2 fw-bold " style="display: none;">
+                  現金加碼：
+                </div>
+              </div>
+              <div id="special-prize-container" class="mt-2" style="display:none;">
+                <input
+                  id="special-prize-input"
+                  class="form-control form-control-sm p-3 fs-3"
+                  placeholder="選擇分享人"
+                  autocomplete="off"
+                  readonly
+                />
+                <div
+                  id="winner-dropdown"
+                  class="list-group position-absolute w-50"
+                  style="z-index: 9999; display: none; max-height: 260px; overflow-y: auto;"
+                ></div>
+
+                <input type="text" id="special-prize-input2" class="form-control form-control-sm p-3 fs-3"
+                style="display:none;"
+                list="special-prize-list"
+                placeholder="選擇加碼人"
+                >
+                  <input type="number" id="special-prize-amount-input"
+                    class="form-control form-control-sm fs-4 mt-2"
+                    placeholder="絕對建議超過2000元"
+                    min="2000"
+                    step="500"
+                    list="special-prize-amount-list">
+                  <button type="button" id="special-balance-btn" class="btn btn-lg btn-light fs-3 mt-2"
+                  style="display:none;">我要加碼</button>
+                  <input type="text" id="special-balance-input" class="form-control form-control-sm fs-4 mt-2" style="display:none;" placeholder="輸入加碼金額">
+                <div id="special-prize-dropdown2" class="dropdown-menu" style="display:none; position:absolute; z-index:999;"></div>
+              <datalist id="special-prize-list"></datalist>
+              </div>
+            </div>
+          </div>
+          <div class="slot p-3 fs-4"  id="slot-box">
+            <div>
+              <div class="row g-0">
+                <div class="col-12 m-0">
+                  <div class="d-flex justify-content-between mb-3 text-light fw-bold">
+                    <div class="flex-fill">部門</div>
+                    <div class="flex-fill">工號</div>
+                    <div class="flex-fill">姓名</div>
+                  </div>
+                </div>
+
+                <div class="animate__animated col-12 fw-bold text-center scroll-viewport bg-white">
+                  <div class="scroll-area d-flex justify-content-between" id="scroll-area">
+                    <!-- JS帶出名單資料 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ul class="pt-3 fs-4 d-flex flex-column align-items-baseline text-light">
+            <li>總人數：<span id="total-count">0</span></li>
+            <li>已中獎人數：<span id="win-count">0</span></li>
+            <li>未中獎人數：<span id="remain-count">0</span></li>
+          </ul>
+        </div>
+
+        <div class="col-1 d-none d-lg-block">
+          <div class="stick">
+            <div class="lever lottery-button">
+              <button type="button" class="btn prize-btn trigger-draw"></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-4 d-none d-lg-block">
+          <div class="upload-section d-flex justify-content-between align-items-center">
+            <label class="text-light w-25">匯入名單（Excel）：
+              <input type="file" id="file-input" accept=".xlsx" />
+            </label>
+            <div>
+              <button id="export-btn" class="btn btn-light">匯出名單</button>
+              <div id="hand-animation-container"></div>
+            </div>
+          </div>
+          <div class="my-3 right-panel text-center">
+            <h3>🎉中獎名單🎉</h3>
+            <ul class="winner-list fs-4" id="winner-list"></ul>
+          </div>
+          <div class="d-flex justify-content-evenly">
+            <button id="show-winners-btn"
+            class="btn btn-sm btn-light">中獎名單詳細</button>
+            <button id="clear-all-btn" type="button" class="btn btn-sm btn-danger">清除紀錄</button>
+          </div>
+        </div>
+      <!-- pc -->
+
+        <!-- mobile -->
+        <div class="my-5 d-block d-lg-none">
+            <div class="lever d-flex justify-content-center mb-5">
+              <button type="button" class="btn btn-danger p-4 rounded-5 fs-1 prize-btn">開抽</button>
+            </div>
+          <div class="right-panel d-flex justify-content-center">
+            <h3>中獎名單</h3>
+            <ul class="winner-list" id="winner-list-mobile"></ul>
+          </div>
+        </div>
+        <!-- mobile -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 刪除確認 Toast（黃色 Warning） -->
+  <div class="toast-container position-fixed top-0 start-50 p-6" style="z-index:20000;">
+    <div id="confirm-toast" class="toast border-0" data-bs-autohide="false" style="width:500px; max-width:none; background-color:#fff; color:#000;">
+      <div class="d-flex flex-column">
+        <div class="toast-body check-style" id="confirm-toast-body">
+          <!-- 動態訊息 -->
+        </div>
+        <div class="d-flex justify-content-evenly align-items-center mb-3">
+          <button id="confirm-yes" class="btn btn-outline-success my-auto check-style">確認</button>
+          <button id="confirm-no" class="btn btn-outline-dark my-auto check-style">取消</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 刪除成功 Toast（紅色 Danger） -->
+  <div class="toast-container position-fixed top-0 start-50 p-6" style="z-index:20000;">
+    <div id="success-toast" class="toast bg-outline-danger border-0"
+    style="width: 500px;">
+      <div class="d-flex">
+        <div class="toast-body check-style" id="success-toast-body">
+          <!-- 動態訊息 -->
+        </div>
+        <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container position-fixed top-0 start-50 p-6" style="z-index:20000;">
+    <div id="list-toast" class="toast border-0" style="color:rgb(255, 255, 255);background-color: rgb(255, 22, 22); width: 500px;">
+      <div class="d-flex">
+        <div class="toast-body check-style" id="list-toast-body">
+          <!-- 動態訊息 -->
+        </div>
+        <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="invalid-feedback fs-6">
+    金額需為 2000 元以上
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.10.1/lottie.min.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>
