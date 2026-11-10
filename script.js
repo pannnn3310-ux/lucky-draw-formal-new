@@ -571,29 +571,33 @@ function validateSpecialPrize(value) {
   return true;
 }
 
+async function requestDraw(event) {
+  event?.preventDefault();
+  event?.stopPropagation();
+  const value = prizeBtn.dataset.value;
+  if (!value) return showToast('請先選擇獎項。');
+  if (isDrawing) return;
+  if (!allNames.length) return showToast('請先匯入完整名單。');
+  if (!eligibleNames.length) return showToast('沒有具備抽獎碼的人員可抽。');
+  const count = winnerData.filter(winner => winner.prize === prizeBtn.textContent).length;
+  if (count >= (prizeLimits[value] ?? 0)) return showToast('獎項已全數抽完。');
+  if (!validateSpecialPrize(value)) return;
+  await doDraw();
+}
+
 document.querySelectorAll('.lever .prize-btn').forEach(button => {
-  button.addEventListener('click', async event => {
-    event.preventDefault();
-    event.stopPropagation();
-    const value = prizeBtn.dataset.value;
-
-    if (!value) return showToast('請先選擇獎項。');
-    if (isDrawing) return;
-    if (!allNames.length) return showToast('請先匯入完整名單。');
-    if (!eligibleNames.length) return showToast('沒有具備抽獎碼的人員可抽。');
-
-    const count = winnerData.filter(winner => winner.prize === prizeBtn.textContent).length;
-    if (count >= (prizeLimits[value] ?? 0)) return showToast('獎項已全數抽完。');
-    if (!validateSpecialPrize(value)) return;
-
-    await doDraw();
-  });
+  button.addEventListener('click', requestDraw);
 });
+
+$('#start-draw-btn')?.addEventListener('click', requestDraw);
 
 async function doDraw() {
   /* 正式中獎者永遠只從 eligibleNames 抽。 */
   const available = eligibleNames.filter(person => !drawnWinners.has(person.id));
   if (!available.length) return showToast('所有具備抽獎碼的人都已中獎。');
+  const lotteryButton = document.querySelector(".lottery-button");
+  lotteryButton?.classList.add("pull");
+  setTimeout(() => lotteryButton?.classList.remove("pull"), 600);
 
   stopAutoScroll();
   clearReelHighlights();
@@ -603,6 +607,7 @@ async function doDraw() {
   });
 
   isDrawing = true;
+  $('#start-draw-btn')?.setAttribute('disabled', 'disabled');
   lever?.classList.add('no-glow');
   const winner = available[Math.floor(Math.random() * available.length)];
   const winnerIndex = eligibleNames.findIndex(person => person.id === winner.id);
@@ -644,6 +649,7 @@ async function doDraw() {
     showToast('抽獎發生錯誤，本次未記錄。');
   } finally {
     isDrawing = false;
+    $('#start-draw-btn')?.removeAttribute('disabled');
     lever?.classList.remove('no-glow');
     // 不立刻重啟，保留結果短暫停格後再平順滾動。
     setTimeout(() => {

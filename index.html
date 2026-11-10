@@ -78,7 +78,12 @@
             </div>
           </div>
 
-          <div class="slot p-3 fs-4" id="slot-box">
+          <div class="slot-machine-shell">
+            <div class="slot-crown" aria-hidden="true">♛</div>
+            <div class="slot-brand"><span>LUCKY</span> <span>SLOT</span></div>
+            <div class="slot-subtitle"><span>★</span> 幸運抽獎碼 <span>★</span></div>
+            <div class="slot-bulbs slot-bulbs-top" aria-hidden="true"></div>
+            <div class="slot p-3 fs-4" id="slot-box">
             <div class="row g-0">
               <div class="col-12 m-0">
                 <div class="draw-code-title mb-3 text-light fw-bold">幸運抽獎碼</div>
@@ -92,7 +97,12 @@
             </div>
           </div>
 
-          <ul class="pt-3 fs-4 d-flex flex-column align-items-baseline text-light">
+            <div class="slot-start-area">
+              <button type="button" id="start-draw-btn" class="start-draw-btn">開始抽獎 <span aria-hidden="true">▶</span></button>
+            </div>
+            <div class="slot-bulbs slot-bulbs-bottom" aria-hidden="true"></div>
+          </div>
+          <ul class="pt-4 fs-4 d-flex flex-column align-items-baseline text-light">
             <li>抽獎人數：<span id="total-count">0</span></li>
             <li>已中獎人數：<span id="win-count">0</span></li>
             <li>未中獎人數：<span id="remain-count">0</span></li>
