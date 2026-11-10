@@ -265,75 +265,6 @@ ol, ul {
           backdrop-filter: blur(4px);
 }
 
-/* --- 超狂電視壞掉效果 --- */
-.glitch-tv {
-  position: relative;
-  animation: tv-shake 0.25s infinite, tv-flicker 0.3s infinite alternate;
-}
-
-/* RGB 分裂 */
-.glitch-tv::before,
-.glitch-tv::after {
-  content: attr(data-text);
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  clip-path: inset(0 0 0 0);
-}
-
-.glitch-tv::before {
-  left: 4px;
-  text-shadow: -4px 0 red;
-  animation: glitch-slice 0.25s infinite;
-}
-
-.glitch-tv::after {
-  left: -4px;
-  text-shadow: 4px 0 rgb(0, 0, 0);
-  animation: glitch-slice 0.3s infinite reverse;
-}
-
-/* 主畫面震動 */
-@keyframes tv-shake {
-  0% {
-    transform: translate(0);
-  }
-  20% {
-    transform: translate(-3px, 2px);
-  }
-  40% {
-    transform: translate(3px, -2px);
-  }
-  60% {
-    transform: translate(-2px, 1px);
-  }
-  80% {
-    transform: translate(2px, -1px);
-  }
-  100% {
-    transform: translate(0);
-  }
-}
-/* 閃爍 + 噪波 */
-@keyframes tv-flicker {
-  0% {
-    opacity: 0.9;
-    filter: contrast(1) brightness(1);
-  }
-  50% {
-    opacity: 0.5;
-    filter: contrast(1.4) brightness(0.7);
-  }
-  100% {
-    opacity: 1;
-    filter: contrast(0.8) brightness(1.2);
-  }
-}
-.long-flash {
-  animation-duration: 3s !important;
-}
-
 #hand-animation-container {
   width: 400px;
   height: 400px;
@@ -407,3 +338,25 @@ ol, ul {
 .p-6 {
   padding-top: 80px;
 }/*# sourceMappingURL=all.css.map */
+
+/* 2026 四碼抽獎版 */
+.draw-code-title {
+  margin-bottom: 18px;
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: .3em;
+}
+.slot .reel { flex: 1 1 25%; min-width: 0; }
+.slot .digit-symbol {
+  font-size: 4.5rem;
+  font-weight: 900;
+  color: #26384d;
+  text-align: center;
+}
+.slot .digit-symbol.winner-highlight {
+  font-size: 5.2rem;
+  color: #d64545;
+  background: rgba(255, 215, 0, .25);
+  text-shadow: 0 2px 0 #fff;
+}
