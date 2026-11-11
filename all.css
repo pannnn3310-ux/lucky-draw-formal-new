@@ -106,6 +106,8 @@ ol, ul {
     position: relative;
     z-index: 30;
     right: 18px;
+    perspective: 800px;
+    transform-style: preserve-3d;
 
     height: 430px;
     min-width: 112px;
@@ -159,16 +161,16 @@ ol, ul {
 
 
 /* =========================
-   金屬拉桿
+拉霸桿固定軌道
    ========================= */
 
 .lottery-button {
     position: absolute;
 
     width: 26px;
-    height: 208px;
+    height: 180px;
 
-    top: 20%;
+    top: 25%;
     left: 10px;
 
     border: 4px solid #7e3516;
@@ -187,21 +189,20 @@ ol, ul {
         );
 
     box-shadow:
-        inset 3px 0 3px rgba(255, 255, 255, 0.85),
-        inset -4px 0 5px rgba(87, 28, 8, 0.35),
-        7px 7px 0 rgba(78, 22, 9, 0.42),
-        8px 11px 16px rgba(0, 0, 0, 0.35);
+        inset 3px 0 3px rgba(255,255,255,.85),
+        inset -4px 0 5px rgba(87,28,8,.35),
+        7px 7px 0 rgba(78,22,9,.42),
+        8px 11px 16px rgba(0,0,0,.35);
 
-    transform: translateY(0) rotate(0deg);
-
-    transform-origin: bottom center;
+    transform: none;
 
     transition:
-        transform 0.45s cubic-bezier(0.22, 0.8, 0.25, 1);
+        height 0.45s cubic-bezier(.22,.8,.25,1),
+        top 0.45s cubic-bezier(.22,.8,.25,1);
 }
 
 /* =========================
-   拉霸紅色球頭
+拉霸紅色球頭
    ========================= */
 
 .lottery-button::after {
@@ -212,8 +213,11 @@ ol, ul {
     width: 88px;
     height: 88px;
 
-    top: -58px;
-    left: -35px;
+    top: -55px;
+
+    /* 固定水平位置 */
+    left: 50%;
+    transform: translateX(-50%);
 
     border: 6px solid #7d170f;
     border-radius: 50%;
@@ -222,7 +226,7 @@ ol, ul {
         radial-gradient(
             circle at 32% 23%,
             #fff7dc 0 7%,
-            rgba(255, 255, 255, 0.75) 8% 13%,
+            rgba(255,255,255,.75) 8% 13%,
             transparent 14%
         ),
         radial-gradient(
@@ -234,23 +238,23 @@ ol, ul {
         );
 
     box-shadow:
-        inset -12px -15px 18px rgba(98, 4, 10, 0.38),
-        inset 8px 8px 12px rgba(255, 255, 255, 0.28),
+        inset -12px -15px 18px rgba(98,4,10,.38),
+        inset 8px 8px 12px rgba(255,255,255,.28),
         0 0 0 4px #ffab35,
-        8px 10px 0 rgba(81, 14, 9, 0.45),
-        0 0 22px rgba(255, 75, 46, 0.75);
+        8px 10px 0 rgba(81,14,9,.45),
+        0 0 22px rgba(255,75,46,.75);
 
     transition:
-        top 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-        transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        top 0.45s cubic-bezier(.22,.8,.25,1),
+        transform 0.45s cubic-bezier(.22,.8,.25,1);
 
     animation: leverGlow 1.8s infinite ease-in-out;
 }
 
 
 /* =========================
-   球頭旁邊的小星光
-   ========================= */
+球頭旁邊的小星光
+========================= */
 
 .stick::after {
     content: "✦";
@@ -274,26 +278,20 @@ ol, ul {
     pointer-events: none;
 }
 
-
-/* =========================
-   拉下拉霸桿時
-   JS 原本加入 .pull
-   所以不需要改 JS
-   ========================= */
-
-/* 以底部固定點轉動，模擬手把被向下拉動。 */
 .lottery-button.pull {
-    transform: translateY(0) rotate(72deg);
+    height: 55px;
+    top: 55%;
 }
 
+/* 球永遠保持在桿子正中央 */
 .lottery-button.pull::after {
-    transform: scale(0.96);
+    top: -5px;
+
+    transform:
+        translateX(-50%)
+        scale(0.96);
 }
 
-
-/* =========================
-   真正可以點擊抽獎的透明 Button
-   ========================= */
 
 .trigger-draw {
     position: absolute;
@@ -557,91 +555,59 @@ ol, ul {
   text-align: center;
 }
 
-.slot .digit-symbol.winner-highlight {
-  font-weight: 900;
 
-  color: #fff !important;
 
-  background: var(--draw-highlight-background);
-
-  transform: none !important;
-  transition: none !important;
-
-  text-shadow:
-    0 0 10px rgba(255, 255, 255, 0.25),
-    0 2px 0 rgba(0, 0, 0, 0.2);
-}
 
 /* ===== 拉霸停止同步修正 ===== */
-
 .slot .symbol,
 .slot .digit-symbol {
   transition: none !important;
 }
 
-.slot .digit-symbol.winner-highlight {
-  font-size: 5.2rem;
-  font-weight: 900;
-
-  color: #fff !important;
-
-  background: var(--draw-highlight-background);
-
-  transform: none !important;
-
-  transition: none !important;
-
-  text-shadow:
-    0 0 10px rgba(255, 255, 255, 0.25),
-    0 2px 0 rgba(0, 0, 0, 0.2);
-}
 
 #scroll-area {
   position: relative;
 }
 
+/* ==================================================
+   中獎紅色區域
+   紅框邊界對齊弧形分隔線
+   ================================================== */
 .stop-indicator {
-  position: absolute;
-
-  top: 90px;
-  height: 90px;
-
-  width: 25%;
-
-  z-index: 20;
-  pointer-events: none;
-
-  opacity: 0;
-
-  border: 6px solid var(--draw-highlight-color);
-  background-color: var(--draw-highlight-background);
-
-  box-shadow:
-    inset 0 0 16px rgba(214, 66, 66, 0.3),
-    0 0 16px rgba(214, 66, 66, 0.45);
-
-  transition: none !important;
+    position: absolute;
+    top: 90px;
+    height: 90px;
+    width: 25%;
+    z-index: 20;
+    pointer-events: none;
+    opacity: 0;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 0;
+    background: linear-gradient(180deg, #ef4a38 0%, #d62828 48%, #a91416 100%);
+    box-shadow:
+        inset 0 3px 0 rgba(255, 202, 71, .9),
+        inset 0 -3px 0 rgba(255, 202, 71, .9),
+        inset 0 0 18px rgba(255, 210, 90, .28);
+    transition: none !important;
 }
-
 .stop-indicator[data-reel-index="0"] {
-  left: 0;
+    left: 0;
+    width: calc(25% - 12px);
 }
-
 .stop-indicator[data-reel-index="1"] {
-  left: 25%;
+    left: calc(25% - 12px);
+    width: calc(25% + 12px);
 }
-
 .stop-indicator[data-reel-index="2"] {
-  left: 50%;
+    left: 50%;
+    width: calc(25% + 12px);
 }
-
 .stop-indicator[data-reel-index="3"] {
-  left: 75%;
+    left: calc(75% + 12px);
+    width: calc(25% - 12px);
 }
-
-.stop-indicator.is-visible {
-  opacity: 1;
-}
+.stop-indicator.is-visible { opacity: 1; }
 
 /* ===== 2026 Lucky Slot visual refresh ===== */
 .slot-machine-shell {
@@ -697,6 +663,7 @@ ol, ul {
   line-height:1;
   text-shadow:0 4px 0 #9e2418,0 0 10px #ffe16a;
 }
+.slot-machine-shell.hide-slot-crown .slot-crown { display:none; }
 /* ===== LUCKY SLOT 下方：幸運抽獎碼 ===== */
 
 .slot-subtitle {
@@ -802,12 +769,14 @@ ol, ul {
   background:linear-gradient(0deg,rgba(111,54,30,.38),rgba(174,112,72,.14) 52%,transparent);
   box-shadow:inset 0 -8px 10px rgba(102,48,25,.18);
 }
+
 .slot-curved-dividers {
-  position:absolute;
-  inset:0;
-  z-index:19;
-  pointer-events:none;
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
 }
+
 .slot-curved-dividers span {
   position:absolute;
   top:-14px;
@@ -815,10 +784,12 @@ ol, ul {
   width:24px;
   border-radius:50%;
 }
+
 .slot-curved-dividers span:nth-child(1) {
   left:calc(25% - 12px);
   border-left:3px solid #a86637;
 }
+
 .slot-curved-dividers span:nth-child(2) {
   left:calc(50% - 1.5px);
   width:3px;
@@ -834,7 +805,6 @@ ol, ul {
   filter:drop-shadow(0 0 3px rgba(116,62,31,.38));
 }
 .slot-machine-shell .reel {
-  /* background: linear-gradient(90deg,#e7c7a7 0%,#fff9e8 16%,#fffaf0 50%,#fff4da 84%,#d8aa82 100%); */
   border-right:none;
   box-shadow: inset 7px 0 12px rgba(116,62,31,.12), inset -7px 0 12px rgba(116,62,31,.12);
 }
@@ -858,13 +828,34 @@ ol, ul {
   text-shadow:0 3px 0 #9e1712;
   box-shadow:0 7px 0 #76130f,0 10px 22px rgba(0,0,0,.32),inset 0 5px 6px rgba(255,255,255,.35);
   transition: transform .08s ease, filter .15s ease;
+  animation:leverGlow 1.8s infinite ease-in-out;
   margin-bottom: 30px;
 }
-.start-draw-btn:hover { filter:brightness(1.1); }
+.start-draw-btn:hover { filter:none; }
 .start-draw-btn:active { transform:translateY(5px); box-shadow:0 2px 0 #76130f,0 5px 12px rgba(0,0,0,.28); }
 .start-draw-btn:disabled { filter:grayscale(.6); opacity:.65; cursor:not-allowed; }
 @media (max-width: 1199px) {
   .slot-machine-shell { padding-left:20px; padding-right:20px; }
   .slot-brand { font-size:3.4rem; }
   .slot-subtitle { top:86px; }
+}
+
+/* ==================================================
+   中獎數字：白字固定顯示在紅底上
+   ================================================== */
+.slot .digit-symbol.winner-highlight {
+    position: relative;
+    z-index: 60;
+    isolation: isolate;
+    font-size: 5.2rem !important;
+    font-weight: 900 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    background: transparent !important;
+    transform: none !important;
+    transition: none !important;
+    text-shadow:
+        0 3px 0 #8a1511,
+        0 0 8px rgba(255,255,255,.80),
+        0 0 14px rgba(255,215,90,.35) !important;
 }

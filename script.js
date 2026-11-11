@@ -22,6 +22,7 @@ const STORAGE_KEY = 'lucky-draw-formal_2026';
 
 const $ = selector => document.querySelector(selector);
 const scrollArea = $('#scroll-area');
+const scrollViewport = scrollArea?.parentElement;
 const prizeBtn = $('#prize-btn');
 const winnerList = $('#winner-list');
 const fileInput = $('#file-input');
@@ -70,6 +71,38 @@ function showToast(message) {
   body.innerHTML = `<p class="m-0">${message}</p>`;
   new bootstrap.Toast(element).show();
 }
+function askConfirmToast(message, yesLabel, noLabel) {
+  const body = $('#confirm-toast-body');
+  const element = $('#confirm-toast');
+  const yesButton = $('#confirm-yes');
+  const noButton = $('#confirm-no');
+  if (!body || !element || !yesButton || !noButton) {
+    throw new Error('找不到確認通知元件');
+  }
+
+  body.textContent = message;
+  yesButton.textContent = yesLabel;
+  noButton.textContent = noLabel;
+  const toast = bootstrap.Toast.getOrCreateInstance(element, { autohide: false });
+
+  return new Promise(resolve => {
+    const cleanup = () => {
+      yesButton.removeEventListener('click', onYes);
+      noButton.removeEventListener('click', onNo);
+    };
+    const finish = answer => {
+      cleanup();
+      toast.hide();
+      resolve(answer);
+    };
+    const onYes = () => finish(true);
+    const onNo = () => finish(false);
+
+    yesButton.addEventListener('click', onYes, { once: true });
+    noButton.addEventListener('click', onNo, { once: true });
+    toast.show();
+  });
+}
 function playAudio(audio) {
   if (!audio) return;
   audio.currentTime = 0;
@@ -90,6 +123,71 @@ function duplicates(values) {
   const duplicate = new Set();
   values.forEach(value => seen.has(value) ? duplicate.add(value) : seen.add(value));
   return [...duplicate];
+}
+
+function makeRecordId() {
+  if (globalThis.crypto?.randomUUID) return crypto.randomUUID();
+  return `record-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+function randomIndex(length) {
+  if (!Number.isInteger(length) || length <= 0) throw new Error('無有效抽獎人數');
+  if (!globalThis.crypto?.getRandomValues) return Math.floor(Math.random() * length);
+  const limit = Math.floor(0x100000000 / length) * length;
+  const buffer = new Uint32Array(1);
+  do crypto.getRandomValues(buffer); while (buffer[0] >= limit);
+  return buffer[0] % length;
+}
+function recordReceivedAmount(record) {
+  return Number(record.prizeAmounts || 0) + Number(record.specialBonus || 0);
+}
+function recordSharedAmount(record) {
+  return Number(record.sharedAmount || 0);
+}
+function recordAvailableAmount(record) {
+  return Math.max(Number(record.prizeAmounts || 0) - recordSharedAmount(record), 0);
+}
+function findShareSource() {
+  const recordId = shareInput?.dataset.recordId || '';
+  if (recordId) return winnerData.find(record => record.recordId === recordId) || null;
+  const id = normalizeId(shareInput?.dataset.id);
+  return id ? winnerData.slice().reverse().find(record => normalizeId(record.id) === id) || null : null;
+}
+let shareOveragePromptOpen = false;
+async function handleShareAmountInput() {
+  if (shareOveragePromptOpen || prizeBtn.dataset.value !== '9') return;
+
+  const source = findShareSource();
+  const enteredAmount = Number(amountInput.value);
+  if (!source || !Number.isFinite(enteredAmount)) return;
+
+  const available = recordAvailableAmount(source);
+  if (enteredAmount <= available) return;
+
+  const excess = enteredAmount - available;
+  shareOveragePromptOpen = true;
+  amountInput.disabled = true;
+  try {
+    const convertToBonus = await askConfirmToast(
+      `分享金額超出可分享額度。可分享餘額：${available.toLocaleString()} 元，超出：${excess.toLocaleString()} 元。是否將超出金額轉為現金加碼？`,
+      '是',
+      '否'
+    );
+
+    if (prizeBtn.dataset.value !== '9' || findShareSource() !== source) return;
+    amountInput.value = String(available);
+    if (convertToBonus) {
+      const currentBonus = Number(balanceInput.value || 0);
+      balanceBtn.click();
+      balanceInput.value = String(currentBonus + excess);
+    }
+  } finally {
+    amountInput.disabled = false;
+    shareOveragePromptOpen = false;
+  }
+}
+function renderWinnerList() {
+  winnerList.innerHTML = '';
+  winnerData.slice().reverse().forEach(record => winnerList.appendChild(createWinnerItem(record)));
 }
 
 const reels = Array.from({ length: REEL_COUNT }, () => ({
@@ -116,7 +214,7 @@ const stopIndicators = Array.from(
     indicator.className = 'stop-indicator';
     indicator.dataset.reelIndex = index;
 
-    scrollArea.appendChild(indicator);
+    scrollViewport?.appendChild(indicator);
 
     return indicator;
   }
@@ -470,10 +568,15 @@ document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
     cashInput.dataset.id = '';
     shareInput.value = '';
     shareInput.dataset.id = '';
+    shareInput.dataset.recordId = '';
     amountInput.value = '';
     balanceInput.value = '';
 
     const special = ['9', '10', '11'].includes(value);
+    $('.slot-machine-shell')?.classList.toggle(
+      'hide-slot-crown',
+      ['9', '10', '11'].includes(value)
+    );
     specialContainer.style.display = special ? 'block' : 'none';
     shareInput.style.display = value === '9' ? 'inline-block' : 'none';
     cashInput.style.display = value === '10' ? 'inline-block' : 'none';
@@ -523,54 +626,84 @@ function getCashProvider() {
   return id ? allNames.find(person => normalizeId(person.id) === id) || null : null;
 }
 
-/* 幸運分享：只選既有中獎者。 */
+/* 幸運分享：只選仍有可分享餘額的既有中獎紀錄。 */
 shareInput?.addEventListener('focus', () => {
   shareDropdown.innerHTML = '';
-  winnerData.slice().reverse().forEach(winner => {
+  const shareable = winnerData.slice().reverse().filter(record => recordAvailableAmount(record) > 0);
+  shareable.forEach(record => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'list-group-item list-group-item-action';
-    button.textContent = `${winner.drawCode}｜${winner.dept} - ${winner.id} - ${winner.name}`;
+    button.textContent = `${record.drawCode}｜${record.dept} - ${record.id} - ${record.name}｜可分享 ${recordAvailableAmount(record).toLocaleString()} 元`;
     button.addEventListener('mousedown', event => {
       event.preventDefault();
-      shareInput.dataset.id = winner.id;
+      shareInput.dataset.id = record.id;
+      shareInput.dataset.recordId = record.recordId;
       shareInput.value = button.textContent;
       shareDropdown.style.display = 'none';
+      handleShareAmountInput();
     });
     shareDropdown.appendChild(button);
   });
-  shareDropdown.style.display = winnerData.length ? 'block' : 'none';
+  shareDropdown.style.display = shareable.length ? 'block' : 'none';
+  if (!shareable.length) showToast('目前沒有可分享餘額的中獎者。');
 });
-
+shareInput?.addEventListener('input', () => {
+  shareInput.dataset.id = '';
+  shareInput.dataset.recordId = '';
+});
+amountInput?.addEventListener('input', handleShareAmountInput);
 balanceBtn?.addEventListener('click', () => {
   balanceInput.style.display = 'block';
   balanceBtn.style.display = 'none';
   cashBonusLabel.style.display = 'block';
 });
 
-function validateSpecialPrize(value) {
+function buildDrawContext(value) {
   const amount = Number(amountInput?.value || 0);
-  if (value === '9' && (!shareInput.dataset.id || amount <= 0)) {
-    showToast('請選擇分享人並輸入分享金額。');
-    return false;
+  const extraBonus = Number(balanceInput?.value || 0);
+  const context = {
+    value,
+    prizeName: prizeBtn.textContent.trim(),
+    amount,
+    extraBonus,
+    shareSource: null,
+    cashProvider: null
+  };
+  if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(extraBonus) || extraBonus < 0) {
+    showToast('金額不可為負數或無效數字。');
+    return null;
+  }
+  if (value === '9') {
+    context.shareSource = findShareSource();
+    if (!context.shareSource || amount <= 0) {
+      showToast('請從清單選擇分享人並輸入分享金額。');
+      return null;
+    }
+    const available = recordAvailableAmount(context.shareSource);
+    if (amount > available) {
+      showToast(`分享金額超過可用餘額。最多可分享 ${available.toLocaleString()} 元。`);
+      amountInput.focus();
+      return null;
+    }
   }
   if (value === '10') {
-    if (!getCashProvider()) {
+    context.cashProvider = getCashProvider();
+    if (!context.cashProvider) {
       showToast('請從完整名單點選一位現金加碼人。');
-      return false;
+      return null;
     }
     if (amount <= 0) {
       showToast('請輸入現金加碼金額。');
-      return false;
+      return null;
     }
   }
   if (value === '11' && amount <= 0) {
     showToast('請輸入金額。');
-    return false;
+    return null;
   }
-  return true;
+  return context;
 }
-
 async function requestDraw(event) {
   event?.preventDefault();
   event?.stopPropagation();
@@ -579,25 +712,26 @@ async function requestDraw(event) {
   if (isDrawing) return;
   if (!allNames.length) return showToast('請先匯入完整名單。');
   if (!eligibleNames.length) return showToast('沒有具備抽獎碼的人員可抽。');
-  const count = winnerData.filter(winner => winner.prize === prizeBtn.textContent).length;
+  const count = winnerData.filter(winner => String(winner.prizeValue) === value).length;
   if (count >= (prizeLimits[value] ?? 0)) return showToast('獎項已全數抽完。');
-  if (!validateSpecialPrize(value)) return;
-  await doDraw();
+  const context = buildDrawContext(value);
+  if (!context) return;
+  await doDraw(context);
 }
-
 document.querySelectorAll('.lever .prize-btn').forEach(button => {
   button.addEventListener('click', requestDraw);
 });
 
 $('#start-draw-btn')?.addEventListener('click', requestDraw);
 
-async function doDraw() {
+async function doDraw(context) {
   /* 正式中獎者永遠只從 eligibleNames 抽。 */
   const available = eligibleNames.filter(person => !drawnWinners.has(person.id));
   if (!available.length) return showToast('所有具備抽獎碼的人都已中獎。');
   const lotteryButton = document.querySelector(".lottery-button");
+  isDrawing = true;
+  $('#start-draw-btn')?.setAttribute('disabled', 'disabled');
   lotteryButton?.classList.add("pull");
-  setTimeout(() => lotteryButton?.classList.remove("pull"), 600);
 
   stopAutoScroll();
   clearReelHighlights();
@@ -606,15 +740,15 @@ async function doDraw() {
     indicator.classList.remove('is-visible');
   });
 
-  isDrawing = true;
-  $('#start-draw-btn')?.setAttribute('disabled', 'disabled');
   lever?.classList.add('no-glow');
-  const winner = available[Math.floor(Math.random() * available.length)];
+  const winner = available[randomIndex(available.length)];
   const winnerIndex = eligibleNames.findIndex(person => person.id === winner.id);
   drawnWinners.add(winner.id);
-  playAudio(drawSound);
 
   try {
+    await new Promise(resolve => setTimeout(resolve, 450));
+    playAudio(drawSound);
+
     const nominalDistance =
       (EXTRA_LOOPS * eligibleNames.length + 8) * ITEM_HEIGHT;
     const pixelsPerMs = nominalDistance / BASE_SPIN_DURATION;
@@ -639,7 +773,8 @@ async function doDraw() {
     );
 
     await Promise.all(spinTasks);
-    recordWinner(winner);
+    lotteryButton?.classList.remove("pull");
+    recordWinner(winner, context);
     stopAudio(drawSound);
     playAudio(winSound);
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -649,6 +784,7 @@ async function doDraw() {
     showToast('抽獎發生錯誤，本次未記錄。');
   } finally {
     isDrawing = false;
+    lotteryButton?.classList.remove("pull");
     $('#start-draw-btn')?.removeAttribute('disabled');
     lever?.classList.remove('no-glow');
     // 不立刻重啟，保留結果短暫停格後再平順滾動。
@@ -663,47 +799,57 @@ async function doDraw() {
   }
 }
 
-function recordWinner(winner) {
-  const value = prizeBtn.dataset.value;
-  let cashProvider = null;
-  if (value === '10') {
-    cashProvider = getCashProvider();
-    if (!cashProvider) throw new Error('現金加碼人工號不存在於完整名單');
+function recordWinner(winner, context) {
+  const value = context.value;
+  const source = context.shareSource;
+  if (value === '9') {
+    if (!source || !winnerData.includes(source)) throw new Error('幸運分享來源已失效');
+    const available = recordAvailableAmount(source);
+    if (context.amount > available) throw new Error(`分享金額超過餘額：${available}`);
   }
-
+  const fixedAmount = Number(prizeAmounts[value] || 0);
   const record = {
+    recordId: makeRecordId(),
+    createdAt: new Date().toISOString(),
     dept: winner.dept,
     id: winner.id,
     name: winner.name,
     drawCode: winner.drawCode,
-    prize: prizeBtn.textContent,
+    prize: context.prizeName,
     prizeValue: Number(value),
-    bonusSource: value === '9' ? shareInput.value.trim() : '',
-    prizeAmounts: prizeAmounts[value] || (value === '11' ? Number(amountInput.value || 0) : 0),
-    specialBonus: value === '10' ? Number(amountInput.value || 0) : Number(balanceInput.value || 0),
-    bonus2Source: cashProvider ? `${cashProvider.dept} - ${cashProvider.id} - ${cashProvider.name}` : '',
-    bonus2Id: cashProvider?.id || '',
-    balance: 0
+    bonusSource: source ? `${source.drawCode}｜${source.dept} - ${source.id} - ${source.name}` : '',
+    bonusSourceId: source?.id || '',
+    bonusSourceRecordId: source?.recordId || '',
+    prizeAmounts: value === '9' ? context.amount : fixedAmount,
+    specialBonus: value === '10' || value === '11'
+      ? context.amount
+      : (value === '9' ? context.extraBonus : 0),
+    bonus2Source: context.cashProvider
+      ? `${context.cashProvider.dept} - ${context.cashProvider.id} - ${context.cashProvider.name}`
+      : '',
+    sharedAmount: 0
   };
-
+  if (source) source.sharedAmount = recordSharedAmount(source) + context.amount;
   winnerData.push(record);
-  winnerList.insertBefore(createWinnerItem(record), winnerList.firstChild);
+  renderWinnerList();
   updateCounts();
   saveState();
 }
-
 function createWinnerItem(record) {
   const item = document.createElement('li');
+  const received = recordReceivedAmount(record);
+  const shared = recordSharedAmount(record);
+  const available = recordAvailableAmount(record);
   item.innerHTML = `
-    <p>${escapeHtml(record.prize)}${record.prizeAmounts ? `【金額：${Number(record.prizeAmounts).toLocaleString()}】` : ''}</p>
+    <p>${escapeHtml(record.prize)}${received ? `【入帳金額：${received.toLocaleString()}】` : ''}</p>
     <p class="winner-code">抽獎碼：${escapeHtml(record.drawCode)}</p>
     <p class="winner-person">${escapeHtml(record.dept)} - ${escapeHtml(record.id)} - ${escapeHtml(record.name)}</p>
-    ${record.bonusSource ? `<p style="color:#D64545;">【${escapeHtml(record.bonusSource)} - 幸運分享】</p>` : ''}
-    ${record.bonus2Source ? `<p style="color:#D64545;">【加碼來源：${escapeHtml(record.bonus2Source)}】</p>` : ''}
+    ${record.bonusSource ? `<p style="color:#D64545;">【幸運分享來源：${escapeHtml(record.bonusSource)}｜分享 ${Number(record.prizeAmounts || 0).toLocaleString()} 元】</p>` : ''}
+    ${Number(record.specialBonus || 0) > 0 ? `<p style="color:#D64545;">【現金加碼：${Number(record.specialBonus).toLocaleString()} 元${record.bonus2Source ? `｜加碼來源：${escapeHtml(record.bonus2Source)}` : ''}】</p>` : ''}
+    ${shared ? `<p style="color:#7A4A00;">【已分享：${shared.toLocaleString()}｜剩餘：${available.toLocaleString()}】</p>` : ''}
   `;
   return item;
 }
-
 function updateCounts() {
   const eligibleIds = new Set(eligibleNames.map(person => person.id));
   const won = [...drawnWinners].filter(id => eligibleIds.has(id)).length;
@@ -719,18 +865,38 @@ function saveState() {
 
 $('#export-btn')?.addEventListener('click', () => {
   if (!winnerData.length) return showToast('沒有中獎名單可匯出。');
-  const headers = ['部門','工號','姓名','抽獎碼','獎項','中獎來源','公司提供金額','加碼金額','加碼來源','加碼來源工號','轉出金額'];
-  const rows = winnerData.map(record => [
-    record.dept, record.id, record.name, record.drawCode, record.prize,
-    record.bonusSource, record.prizeAmounts, record.specialBonus,
-    record.bonus2Source, record.bonus2Id, record.balance ?? 0
-  ]);
+
+  // 現金交易一律匯入「加碼金額」；分享欄只匯出有轉出紀錄者的合計。
+  const headers = [
+    '部門', '工號', '姓名', '抽獎碼', '獎項',
+    '中獎來源', '公司提供金額', '加碼金額', '加碼來源',
+    '已分享金額', '剩餘可分享金額'
+  ];
+
+  const rows = winnerData.map(record => {
+    const shared = recordSharedAmount(record);
+    const hasShared = shared > 0;
+
+    return [
+      record.dept,
+      record.id,
+      record.name,
+      record.drawCode,
+      record.prize,
+      record.bonusSource,
+      Number(record.prizeAmounts || 0),
+      Number(record.specialBonus || 0),
+      record.bonus2Source,
+      hasShared ? shared : '',
+      hasShared ? recordAvailableAmount(record) : ''
+    ];
+  });
+
   const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, '中獎名單');
   XLSX.writeFile(workbook, '大寶2026年尾牙中獎名單.xlsx');
 });
-
 $('#show-winners-btn')?.addEventListener('click', () => {
   localStorage.setItem('winnerData', JSON.stringify(winnerData));
   window.open('winnersData.html', '_blank');
@@ -750,10 +916,21 @@ $('#clear-all-btn')?.addEventListener('click', () => {
   try {
     const savedWinners = localStorage.getItem(`${STORAGE_KEY}_winnerData`);
     const savedDrawn = localStorage.getItem(`${STORAGE_KEY}_drawnWinners`);
-    if (savedWinners) winnerData = JSON.parse(savedWinners);
+    if (savedWinners) {
+      const parsed = JSON.parse(savedWinners);
+      winnerData = Array.isArray(parsed) ? parsed : [];
+      winnerData.forEach(record => {
+        record.recordId ||= makeRecordId();
+        record.createdAt ||= '';
+        record.sharedAmount = Number(record.sharedAmount ?? record.balance ?? 0);
+        delete record.balance;
+        delete record.bonus2Id;
+        record.prizeAmounts = Number(record.prizeAmounts || 0);
+        record.specialBonus = Number(record.specialBonus || 0);
+      });
+    }
     if (savedDrawn) drawnWinners = new Set(JSON.parse(savedDrawn));
-    winnerList.innerHTML = '';
-    winnerData.slice().reverse().forEach(record => winnerList.appendChild(createWinnerItem(record)));
+    renderWinnerList();
   } catch (error) {
     console.error('還原資料失敗：', error);
   }
