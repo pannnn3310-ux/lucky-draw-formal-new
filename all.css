@@ -124,11 +124,11 @@ ol, ul {
 
     position: absolute;
 
-    width: 104px;
+    width: 80px;
     height: 126px;
 
     top: 61%;
-    left: -26px;
+    left: -13px;
 
     border: 5px solid #8b310d;
     border-left-width: 3px;
@@ -168,8 +168,8 @@ ol, ul {
     width: 26px;
     height: 208px;
 
-    top: 24%;
-    left: 28px;
+    top: 20%;
+    left: 10px;
 
     border: 4px solid #7e3516;
     border-radius: 18px;
@@ -192,7 +192,7 @@ ol, ul {
         7px 7px 0 rgba(78, 22, 9, 0.42),
         8px 11px 16px rgba(0, 0, 0, 0.35);
 
-    transform: translateY(0) rotate(7deg);
+    transform: translateY(0) rotate(0deg);
 
     transform-origin: bottom center;
 
@@ -649,12 +649,11 @@ ol, ul {
   margin: 0 auto;
   padding: 108px 30px 28px;
   max-width: 920px;
-  border: 7px solid #7d180f;
   border-radius: 54px 54px 32px 32px;
   background:
     linear-gradient(180deg, #ff4b27 0%, #dc291b 34%, #b91616 100%);
   box-shadow:
-    0 18px 0 #6a160e,
+    10px 5px 5px 5px #6a160e,
     0 24px 32px rgba(0,0,0,.42),
     inset 0 0 0 5px #ffb62e,
     inset 0 0 25px rgba(255,207,75,.45);
@@ -662,24 +661,24 @@ ol, ul {
 .slot-machine-shell::before {
   content: "";
   position: absolute;
-  left: 7%; right: 7%; top: 12px;
+  left: 7%; right: 7%; top: 30px;
   height: 112px;
   background: linear-gradient(180deg,#ff3b22,#c81418);
   border: 5px solid #8c1c13;
-  border-radius: 50% 50% 18px 18px / 75% 75% 18px 18px;
+  border-radius: 50% 50% 10px 10px;
   box-shadow: inset 0 0 0 4px #ffb72d, 0 8px 12px rgba(0,0,0,.25);
   z-index: 0;
 }
 .slot-brand {
   position: absolute;
   z-index: 2;
-  top: 26px; left: 50%;
+  top: 35px; left: 50%;
   width: 88%;
   transform: translateX(-50%);
   color: #fff3b2;
   font-family: Georgia, "Times New Roman", serif;
   font-weight: 900;
-  font-size: clamp(2.5rem, 5vw, 4.7rem);
+  font-size: clamp(2.5rem, 5vw, 50px);
   line-height: 1;
   letter-spacing: .02em;
   text-shadow: 0 5px 0 #8f180f, 0 0 4px #fff, 0 0 14px #ffc536;
@@ -690,7 +689,7 @@ ol, ul {
 .slot-brand span + span { margin-left: .12em; }
 .slot-crown {
   position:absolute;
-  top:-29px; left:50%;
+  top: -200px; left: 50%;
   z-index:3;
   transform:translateX(-50%);
   color:#fff2a5;
@@ -698,35 +697,76 @@ ol, ul {
   line-height:1;
   text-shadow:0 4px 0 #9e2418,0 0 10px #ffe16a;
 }
+/* ===== LUCKY SLOT 下方：幸運抽獎碼 ===== */
+
 .slot-subtitle {
-  position: absolute;
-  z-index: 3;
-  top: 93px; left: 50%;
-  transform: translateX(-50%);
-  min-width: 46%;
-  padding: 7px 28px;
-  border: 4px solid #ffbe35;
-  border-radius: 15px;
-  background: linear-gradient(#d72a1c,#a91510);
-  color: #fff0bd;
-  font-size: clamp(1.3rem,2.4vw,2rem);
-  font-weight: 900;
-  letter-spacing: .2em;
-  white-space: nowrap;
-  box-shadow: 0 5px 0 #76140e, inset 0 1px 4px rgba(255,255,255,.36);
+    position: absolute;
+    z-index: 5;
+
+    /* 放在 LUCKY SLOT 正下方 */
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 48%;
+    /* 文字 */
+    color: #fff4c4;
+
+    font-size: 2.5rem;
+    font-weight: 900;
+
+    letter-spacing: 0.22em;
+
+    white-space: nowrap;
+
+    /* 立體效果 */
+    text-shadow:
+        0 2px 0 #9a150f,
+        0 0 8px rgba(255, 225, 100, 0.45);
 }
-.slot-bulbs { position:absolute; left:34px; right:34px; height:18px; z-index:4; pointer-events:none; }
-.slot-bulbs-top { top:132px; }
-.slot-bulbs-bottom { bottom:14px; }
+
+
+/* 左右星星 */
+
+.slot-subtitle span {
+    display: inline-block;
+    color: #ffd93d;
+    font-size: 2.4rem;
+
+    text-shadow:
+        0 0 6px #ff9e22,
+        0 0 12px rgba(255, 220, 65, 0.8);
+}
+.slot-bulbs { position:absolute; left:34px; right:34px; height:16px; z-index:4; pointer-events:none; }
+.slot-bulbs-top {
+  top:10px;
+  left:5px;
+  right:5px;
+  clip-path:inset(0 round 60px 60px 0 0);
+}
+.slot-bulbs-bottom { bottom:14px; left:5px; right:5px; }
 .slot-bulbs::before {
   content:"";
   position:absolute; inset:0;
-  background: radial-gradient(circle, #fffbd0 0 24%, #ffd93f 26% 43%, transparent 46%) 0 50% / 52px 18px repeat-x;
+  background: radial-gradient(circle 12px at center, #fffbd0 0 24%, #ffd93f 26% 43%, transparent 46%) 0 50% / 52px 16px repeat-x;
   filter: drop-shadow(0 0 7px #ffe347);
 }
+.slot-machine-shell::after {
+  content:"";
+  position:absolute;
+  top:30px;
+  right:5px;
+  bottom:30px;
+  left:5px;
+  z-index:4;
+  pointer-events:none;
+  background:
+    radial-gradient(circle 12px at center, #fffbd0 0 24%, #ffd93f 26% 43%, transparent 46%) left top -7px / 16px 32px repeat-y,
+    radial-gradient(circle 12px at center, #fffbd0 0 24%, #ffd93f 26% 43%, transparent 46%) right top -7px / 16px 32px repeat-y;
+  filter: drop-shadow(0 0 12px #ffe347);
+}
 .slot-machine-shell .slot {
-  height: 340px;
-  padding: 22px !important;
+  height: 286px;
+  padding: 0 !important;
   border: 8px solid #ffbf36;
   border-radius: 28px;
   background: linear-gradient(180deg,#7f170f,#c62918);
@@ -737,19 +777,65 @@ ol, ul {
 .slot-machine-shell .scroll-viewport {
   height:270px;
   border:4px solid #7c2e18;
-  border-radius:19px;
-  background:#fff4d8 !important;
-  box-shadow: inset 0 0 22px rgba(123,59,28,.28);
+  border-radius:34px / 48px;
+  background:
+    linear-gradient(90deg, rgba(113,54,30,.26), transparent 12%, transparent 88%, rgba(113,54,30,.26)),
+    linear-gradient(180deg,#f3d9ba,#fff8e7 20%,#fff5df 76%,#e0b99a) !important;
+  box-shadow:
+    inset 0 0 22px rgba(123,59,28,.28),
+    inset 14px 0 20px rgba(111,55,31,.14),
+    inset -14px 0 20px rgba(111,55,31,.14);
 }
 .slot-machine-shell .scroll-viewport::before,
 .slot-machine-shell .scroll-viewport::after {
-  content:""; position:absolute; left:0; right:0; height:54px; z-index:18; pointer-events:none;
+  content:""; position:absolute; left:-1%; right:-1%; height:58px; z-index:18; pointer-events:none;
 }
-.slot-machine-shell .scroll-viewport::before { top:0; background:linear-gradient(#d9b492aa,transparent); }
-.slot-machine-shell .scroll-viewport::after { bottom:0; background:linear-gradient(transparent,#d9a78599); }
-.slot-machine-shell .reel {
-  background: linear-gradient(90deg,#e7c7a7 0%,#fff9e8 16%,#fffaf0 50%,#fff4da 84%,#d8aa82 100%);
+.slot-machine-shell .scroll-viewport::before {
+  top:0;
+  border-radius:0 0 50% 50% / 0 0 30% 30%;
+  background:linear-gradient(180deg,rgba(111,54,30,.42),rgba(174,112,72,.16) 52%,transparent);
+  box-shadow:inset 0 8px 10px rgba(102,48,25,.2);
+}
+.slot-machine-shell .scroll-viewport::after {
+  bottom:0;
+  border-radius:50% 50% 0 0 / 30% 30% 0 0;
+  background:linear-gradient(0deg,rgba(111,54,30,.38),rgba(174,112,72,.14) 52%,transparent);
+  box-shadow:inset 0 -8px 10px rgba(102,48,25,.18);
+}
+.slot-curved-dividers {
+  position:absolute;
+  inset:0;
+  z-index:19;
+  pointer-events:none;
+}
+.slot-curved-dividers span {
+  position:absolute;
+  top:-14px;
+  bottom:-14px;
+  width:24px;
+  border-radius:50%;
+}
+.slot-curved-dividers span:nth-child(1) {
+  left:calc(25% - 12px);
+  border-left:3px solid #a86637;
+}
+.slot-curved-dividers span:nth-child(2) {
+  left:calc(50% - 1.5px);
+  width:3px;
+  border-radius:0;
+  background:#a86637;
+}
+.slot-curved-dividers span:nth-child(3) {
+  left:calc(75% - 12px);
   border-right:3px solid #a86637;
+}
+.slot-curved-dividers span:nth-child(1),
+.slot-curved-dividers span:nth-child(3) {
+  filter:drop-shadow(0 0 3px rgba(116,62,31,.38));
+}
+.slot-machine-shell .reel {
+  /* background: linear-gradient(90deg,#e7c7a7 0%,#fff9e8 16%,#fffaf0 50%,#fff4da 84%,#d8aa82 100%); */
+  border-right:none;
   box-shadow: inset 7px 0 12px rgba(116,62,31,.12), inset -7px 0 12px rgba(116,62,31,.12);
 }
 .slot-machine-shell .digit-symbol {
@@ -761,10 +847,10 @@ ol, ul {
 .slot-start-area { padding: 18px 0 2px; text-align:center; }
 .start-draw-btn {
   min-width: 54%;
-  padding: 14px 38px;
+  padding: 14px;
   border: 5px solid #ffc84f;
   border-radius: 999px;
-  background: linear-gradient(180deg,#ff654d 0%,#ef271e 58%,#b81015 100%);
+  background: linear-gradient(180deg,#ff654d 0%,#ff0f03 58%,#b81015 100%);
   color:#fff5c9;
   font-size:clamp(1.8rem,3.2vw,3rem);
   font-weight:900;
