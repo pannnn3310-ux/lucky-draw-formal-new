@@ -80,7 +80,7 @@ function askConfirmToast(message, yesLabel, noLabel) {
     throw new Error('找不到確認通知元件');
   }
 
-  body.textContent = message;
+  body.innerHTML = message;
   yesButton.textContent = yesLabel;
   noButton.textContent = noLabel;
   const toast = bootstrap.Toast.getOrCreateInstance(element, { autohide: false });
@@ -152,32 +152,78 @@ function findShareSource() {
   const id = normalizeId(shareInput?.dataset.id);
   return id ? winnerData.slice().reverse().find(record => normalizeId(record.id) === id) || null : null;
 }
+
+
 let shareOveragePromptOpen = false;
 async function handleShareAmountInput() {
-  if (shareOveragePromptOpen || prizeBtn.dataset.value !== '9') return;
+  if (
+    shareOveragePromptOpen ||
+    prizeBtn.dataset.value !== '9'
+  ) return;
 
   const source = findShareSource();
   const enteredAmount = Number(amountInput.value);
-  if (!source || !Number.isFinite(enteredAmount)) return;
+
+  if (
+    !source ||
+    !Number.isFinite(enteredAmount) ||
+    enteredAmount <= 0
+  ) return;
 
   const available = recordAvailableAmount(source);
+
   if (enteredAmount <= available) return;
 
   const excess = enteredAmount - available;
+
   shareOveragePromptOpen = true;
   amountInput.disabled = true;
+
   try {
     const convertToBonus = await askConfirmToast(
-      `分享金額超出可分享額度。可分享餘額：${available.toLocaleString()} 元，超出：${excess.toLocaleString()} 元。是否將超出金額轉為現金加碼？`,
+      `
+        <p class="mb-2">
+          分享金額超出可分享額度。
+        </p>
+
+        <p class="mb-1">
+          可分享餘額：
+          <strong class="text-danger">${available.toLocaleString()} 元</strong>
+        </p>
+
+        <p class="mb-2">
+          超出金額：
+          <strong class="text-danger">${excess.toLocaleString()} 元</strong>
+        </p>
+
+        <p class="mb-0">
+          是否將超出金額轉為現金加碼？
+        </p>
+      `,
       '是',
       '否'
     );
 
-    if (prizeBtn.dataset.value !== '9' || findShareSource() !== source) return;
+    // 使用者等待確認期間，若切換獎項或分享來源，就不再處理
+    if (
+      prizeBtn.dataset.value !== '9' ||
+      findShareSource() !== source
+    ) {
+      return;
+    }
+
+    // 分享金額最多只保留可分享餘額
     amountInput.value = String(available);
+
     if (convertToBonus) {
       const currentBonus = Number(balanceInput.value || 0);
-      balanceBtn.click();
+
+      // 顯示現金加碼欄位
+      balanceInput.style.display = 'block';
+      balanceBtn.style.display = 'none';
+      cashBonusLabel.style.display = 'block';
+
+      // 超出金額累加至現金加碼
       balanceInput.value = String(currentBonus + excess);
     }
   } finally {
