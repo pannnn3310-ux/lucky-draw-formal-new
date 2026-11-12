@@ -312,9 +312,48 @@ function applyReelPosition(reel) {
 
 function normalizeAutoPosition(reel) {
   if (!reel.cycleHeight) return;
-  while (reel.positionPx >= reel.cycleHeight) {
-    reel.positionPx -= reel.cycleHeight;
+  reel.positionPx =
+    ((reel.positionPx % reel.cycleHeight) +
+      reel.cycleHeight) %
+    reel.cycleHeight;
+}
+
+// 導正抽獎邏輯
+function normalizeStoppedReel(reel, targetDigit) {
+  if (!reel.cycleHeight || !reel.items.length) return null;
+
+  const viewport = $('.scroll-viewport');
+  const centerOffset =
+    viewport.offsetHeight / 2 - ITEM_HEIGHT / 2;
+
+  /*
+   * 將抽獎後累積很大的 positionPx，
+   * 立即換算回基本循環範圍。
+   */
+  reel.positionPx =
+    ((reel.positionPx % reel.cycleHeight) + reel.cycleHeight) %
+    reel.cycleHeight;
+
+  /*
+   * 由正規化後的位置重新找出畫面中央格。
+   */
+  const normalizedItemIndex = Math.round(
+    (reel.positionPx + centerOffset) / ITEM_HEIGHT
+  );
+
+  /*
+   * 保證正規化後的中央格仍然是本次中獎數字。
+   */
+  if (reel.items[normalizedItemIndex]) {
+    reel.items[normalizedItemIndex].textContent =
+      String(targetDigit);
   }
+
+  reel.finalItemIndex = normalizedItemIndex;
+
+  applyReelPosition(reel);
+
+  return normalizedItemIndex;
 }
 
 function startAutoScroll() {
@@ -497,23 +536,34 @@ function spinReel(
         return;
       }
 
-      // ==========================================
-      // 最後一幀：停止 + 框選完全同步
-      // ==========================================
+       //先精確走到原始計算出的停止位置
+        reel.positionPx = target.targetPositionPx;
 
-      // 先記住真正中獎位置
-      reel.finalItemIndex = target.targetItem;
+        /*
+        * 停止當下就將位置正規化回基本循環，
+        * 不要等重新啟動自動滾動後才回捲。
+        */
+        const normalizedItemIndex = normalizeStoppedReel(
+          reel,
+          targetDigit
+        );
 
-      // 同一個 JS frame 內：
-      // 1. 精確停到中獎數字
-      // 2. 同時顯示停止框
-      reel.positionPx = target.targetPositionPx;
-      applyReelPosition(reel);
-      reel.highlightedItemIndex = target.targetItem;
-      reel.items[target.targetItem].classList.add('winner-highlight');
-      reel.el.style.zIndex = '21';
+        /*
+        * 框選正規化後真正位於中央的格子。
+        */
+        reel.highlightedItemIndex = normalizedItemIndex;
 
-      onStop?.();
+        if (
+          normalizedItemIndex !== null &&
+          reel.items[normalizedItemIndex]
+        ) {
+          reel.items[normalizedItemIndex]
+            .classList.add('winner-highlight');
+        }
+
+        reel.el.style.zIndex = '21';
+
+        onStop?.();
 
       // 在同一個繪製週期內更新滾輪與停止框，避免框線延後一幀。
       void scrollArea.offsetHeight;
