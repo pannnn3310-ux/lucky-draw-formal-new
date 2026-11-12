@@ -941,7 +941,7 @@ function recordWinner(winner, context) {
       ? context.amount
       : (value === '9' ? context.extraBonus : 0),
     bonus2Source: context.cashProvider
-      ? `${context.cashProvider.dept} - ${context.cashProvider.id} - ${context.cashProvider.name}`
+      ? `${context.cashProvider.dept} - ${context.cashProvider.name}`
       : '',
     sharedAmount: 0
   };
@@ -968,11 +968,15 @@ function createWinnerItem(record) {
 
     item.innerHTML = `
       <p class="winner-share-summary">
-        ${escapeHtml(record.prize)}【金額：${amountText}】：
+        ${escapeHtml(record.prize)}【中獎金額：${amountText}】
       </p>
 
-      <p class="winner-share-person">
-        ${escapeHtml(record.dept)} - ${escapeHtml(record.name)}
+      <p class="winner-code">
+        抽獎碼：${escapeHtml(record.drawCode)}
+      </p>
+
+      <p class="winner-share-person fs-3">
+        ${escapeHtml(record.dept)} - <span style="color:#FF5151;">${escapeHtml(record.name)}</span>
       </p>
 
       <p class="winner-share-source">
@@ -993,32 +997,21 @@ function createWinnerItem(record) {
       抽獎碼：${escapeHtml(record.drawCode)}
     </p>
 
-    <p class="winner-person">
-      ${escapeHtml(record.dept)} - ${escapeHtml(record.name)}
+    <p class="winner-person fs-3">
+      ${escapeHtml(record.dept)} - <span style="color:#FF5151;">${escapeHtml(record.name)}</span>
     </p>
 
-    ${record.bonusSource
-      ? `<p style="color:#D64545;">
-          【幸運分享來源：${escapeHtml(record.bonus)}｜幸運分享】
-         </p>`
-      : ''
-    }
-
     ${Number(record.specialBonus || 0) > 0
-      ? `<p style="color:#D64545;">
-          【現金加碼：${Number(record.specialBonus).toLocaleString()} 元
-          ${record.bonus2Source
-            ? `｜加碼來源：${escapeHtml(record.bonus2Source)}`
-            : ''
-          }】
-         </p>`
+      ? `<p style="color:#413d376e;">
+          【${escapeHtml(record.bonus2Source)}】
+        </p>`
       : ''
     }
 
     ${shared
-      ? `<p style="color:#7A4A00;">
+      ? `<p style="color:#413d376e;">
           【已分享：${shared.toLocaleString()}】
-         </p>`
+        </p>`
       : ''
     }
   `;
