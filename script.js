@@ -20,11 +20,15 @@ const DECELERATION_DURATION = 800;
 const EXTRA_LOOPS = 5;
 const STORAGE_KEY = 'lucky-draw-formal_2026';
 
+
 const $ = selector => document.querySelector(selector);
 const scrollArea = $('#scroll-area');
 const scrollViewport = scrollArea?.parentElement;
 const prizeBtn = $('#prize-btn');
 const winnerList = $('#winner-list');
+const winnerAnnouncement = $('#winner-announcement');
+const winnerAnnouncementCode = $('#winner-announcement-code');
+const winnerAnnouncementName = $('#winner-announcement-name');
 const fileInput = $('#file-input');
 const cashInput = $('#special-prize-input2');
 const cashDropdown = $('#special-prize-dropdown2');
@@ -41,11 +45,13 @@ const drawSound = $('#draw-sound');
 const winSound = $('#win-sound');
 const donSound = $('#win-don');
 
+//獎項金額
 const prizeAmounts = {
   1: 30000, 2: 20000, 3: 15000, 4: 10000,
   5: 8000, 6: 7000, 7: 6000, 8: 5000,
   12: 3600, 13: 9000
 };
+
 const prizeLimits = {
   '1': 1, '2': 1, '3': 1, '4': 1,
   '5': 2, '6': 2, '7': 6, '8': 6,
@@ -834,6 +840,29 @@ document.querySelectorAll('.lever .prize-btn').forEach(button => {
 
 $('#start-draw-btn')?.addEventListener('click', requestDraw);
 
+function announceWinner(winner) {
+  if (!winnerAnnouncement || !winnerAnnouncementCode || !winnerAnnouncementName) {
+    throw new Error('找不到中獎揭曉元件');
+  }
+
+  winnerAnnouncementCode.textContent = winner.drawCode;
+  winnerAnnouncementName.textContent = `${winner.dept} - ${winner.name}`;
+  winnerAnnouncement.hidden = false;
+  winnerAnnouncement.setAttribute('aria-hidden', 'false');
+  winnerAnnouncement.classList.remove('is-active');
+  void winnerAnnouncement.offsetWidth;
+  winnerAnnouncement.classList.add('is-active');
+
+  return new Promise(resolve => {
+    setTimeout(() => {
+      winnerAnnouncement.classList.remove('is-active');
+      winnerAnnouncement.hidden = true;
+      winnerAnnouncement.setAttribute('aria-hidden', 'true');
+      resolve();
+    }, 6200);
+  });
+}
+
 async function doDraw(context) {
   /* 正式中獎者永遠只從 eligibleNames 抽。 */
   const available = eligibleNames.filter(person => !drawnWinners.has(person.id));
@@ -892,7 +921,12 @@ async function doDraw(context) {
     shareDrawRecorded = true;
     stopAudio(drawSound);
     playAudio(winSound);
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      await announceWinner(winner);
+    } catch (error) {
+      console.error('中獎紀錄已完成，但無法顯示揭曉動畫。', error);
+      showToast('中獎紀錄已完成，但揭曉動畫無法顯示。');
+    }
   } catch (error) {
     console.error(error);
     drawnWinners.delete(winner.id);
