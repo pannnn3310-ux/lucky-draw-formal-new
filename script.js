@@ -239,7 +239,6 @@ function renderWinnerList() {
 const reels = Array.from({ length: REEL_COUNT }, () => ({
   el: document.createElement('div'),
   items: [],
-  personIndexes: [],
   positionPx: 0,
   cycleHeight: 0,
   finalItemIndex: -1,
@@ -270,7 +269,6 @@ function clearReels() {
   reels.forEach(reel => {
     reel.el.innerHTML = '';
     reel.items = [];
-    reel.personIndexes = [];
     reel.positionPx = 0;
     reel.cycleHeight = 0;
     reel.finalItemIndex = -1;
@@ -285,30 +283,25 @@ function populateReels() {
   clearReels();
   if (!eligibleNames.length) return;
 
-  const personCount = eligibleNames.length;
-  const repeatedCount = Math.max(
-    MIN_REEL_ITEMS,
-    Math.ceil(MIN_REEL_ITEMS / personCount) * personCount
-  );
-
-  for (let itemIndex = 0; itemIndex < repeatedCount; itemIndex++) {
-    const personIndex = itemIndex % personCount;
-    const digits = eligibleNames[personIndex].drawCode.split('');
-
-    reels.forEach((reel, reelIndex) => {
-      const symbol = document.createElement('div');
-      symbol.className = 'symbol digit-symbol';
-      symbol.textContent = digits[reelIndex];
-      reel.el.appendChild(symbol);
-      reel.items.push(symbol);
-      reel.personIndexes.push(personIndex);
-    });
-  }
+  // 純視覺隨機序列：四軸各自產生 0～9，與名單流水碼完全脫鉤。
+  // 同一段序列複製兩次，讓待機自動滾動可以無縫回捲。
+  const baseItemCount = Math.max(120, Math.ceil(MIN_REEL_ITEMS / 2));
 
   reels.forEach(reel => {
-    reel.cycleHeight = reel.items.length * ITEM_HEIGHT;
-    // 匯入後從第一組資料開始顯示。不要一開始就把整條 reel 位移到中段，
-    // 避免瀏覽器在首次 layout 時出現看似沒有滾動的狀況。
+    const baseDigits = Array.from(
+      { length: baseItemCount },
+      () => randomIndex(10)
+    );
+
+    [...baseDigits, ...baseDigits].forEach(digit => {
+      const symbol = document.createElement('div');
+      symbol.className = 'symbol digit-symbol';
+      symbol.textContent = String(digit);
+      reel.el.appendChild(symbol);
+      reel.items.push(symbol);
+    });
+
+    reel.cycleHeight = baseItemCount * ITEM_HEIGHT;
     reel.positionPx = 0;
     applyReelPosition(reel);
   });
@@ -320,19 +313,9 @@ function applyReelPosition(reel) {
 
 /* 自動滾動時只在完全相同人物週期上重定位，畫面不會跳。 */
 function normalizeAutoPosition(reel) {
-  if (!eligibleNames.length) return;
-
-  // 每 N 個 symbol，畫面內容會完全相同。只在完整人員週期上回捲，
-  // 因此即使回捲數千 px，使用者看到的數字位置仍完全一致。
-  const personCycleHeight = eligibleNames.length * ITEM_HEIGHT;
-  const maxSafePosition = reel.cycleHeight - ITEM_HEIGHT * 12;
-
-  if (reel.positionPx >= maxSafePosition) {
-    const cyclesToRemove = Math.max(
-      1,
-      Math.floor(reel.positionPx / personCycleHeight) - 2
-    );
-    reel.positionPx -= cyclesToRemove * personCycleHeight;
+  if (!reel.cycleHeight) return;
+  while (reel.positionPx >= reel.cycleHeight) {
+    reel.positionPx -= reel.cycleHeight;
   }
 }
 
@@ -374,29 +357,18 @@ function stopAutoScroll() {
 
 /* 從目前位置往下找 winner 的下一個安全出現位置。
    終點一開始就固定，最後一格不再強制改號，因此不會 3 突跳 1。 */
-function calculateTargetPosition(reel, winnerIndex, extraLoops) {
+function calculateTargetPosition(reel, targetDigit, extraLoops) {
   const viewport = $('.scroll-viewport');
   const centerOffset = viewport.offsetHeight / 2 - ITEM_HEIGHT / 2;
-  const currentCenterItem = Math.ceil((reel.positionPx + centerOffset) / ITEM_HEIGHT);
-  const minimumAdvanceItems = extraLoops * eligibleNames.length + 8;
-  const minimumTargetItem = currentCenterItem + minimumAdvanceItems;
+  const currentCenterItem = Math.ceil(
+    (reel.positionPx + centerOffset) / ITEM_HEIGHT
+  );
+  const minimumAdvanceItems = extraLoops * 10 + 8;
+  const targetItem = currentCenterItem + minimumAdvanceItems + randomIndex(10);
 
-  // 每次依「目前實際位置」擴充，避免第三次之後已接近尾端，
-  // 但 requiredLength 仍比現有長度小，造成找不到終點與遞迴錯誤。
-  const requiredLength = minimumTargetItem + eligibleNames.length * 3 + 12;
-  extendReels(requiredLength);
-
-  let targetItem = -1;
-  for (let index = minimumTargetItem; index < reel.personIndexes.length; index++) {
-    if (reel.personIndexes[index] === winnerIndex) {
-      targetItem = index;
-      break;
-    }
-  }
-
-  if (targetItem < 0) {
-    throw new Error(`無法計算滾輪終點：winnerIndex=${winnerIndex}`);
-  }
+  extendReels(targetItem + 12);
+  // 只有最後停止格指定為實際中獎碼；其餘格子全部是純隨機數字。
+  reel.items[targetItem].textContent = String(targetDigit);
 
   return {
     targetItem,
@@ -405,37 +377,32 @@ function calculateTargetPosition(reel, winnerIndex, extraLoops) {
 }
 
 function extendReels(requiredLength) {
-  if (!eligibleNames.length) return;
-  const currentLength = reels[0].items.length;
-  if (currentLength >= requiredLength) return;
-
-  for (let itemIndex = currentLength; itemIndex < requiredLength; itemIndex++) {
-    const personIndex = itemIndex % eligibleNames.length;
-    const digits = eligibleNames[personIndex].drawCode.split('');
-
-    reels.forEach((reel, reelIndex) => {
+  reels.forEach(reel => {
+    while (reel.items.length < requiredLength) {
       const symbol = document.createElement('div');
       symbol.className = 'symbol digit-symbol';
-      symbol.textContent = digits[reelIndex];
+      symbol.textContent = String(randomIndex(10));
       reel.el.appendChild(symbol);
       reel.items.push(symbol);
-      reel.personIndexes.push(personIndex);
-      reel.cycleHeight = reel.items.length * ITEM_HEIGHT;
-    });
-  }
+    }
+  });
 }
 
 // 抽獎完成後，把同一位中獎者無感搬回安全區。
 // 畫面仍是同一組四碼，但下一次抽獎不會從內容尾端繼續累積。
-function rebaseReelsToWinner(winnerIndex) {
+function rebaseReelsToWinner(winnerCode) {
   const viewport = $('.scroll-viewport');
   const centerOffset = viewport.offsetHeight / 2 - ITEM_HEIGHT / 2;
-  const safeCycle = 3;
-  const safeItemIndex = safeCycle * eligibleNames.length + winnerIndex;
+  const winnerDigits = String(winnerCode)
+    .padStart(REEL_COUNT, '0')
+    .split('');
 
-  extendReels(safeItemIndex + eligibleNames.length * 4);
+  // 重建下一輪使用的隨機序列，但視覺中心仍保持剛才的中獎碼。
+  populateReels();
+  const safeItemIndex = 20;
 
-  reels.forEach(reel => {
+  reels.forEach((reel, reelIndex) => {
+    reel.items[safeItemIndex].textContent = winnerDigits[reelIndex];
     reel.positionPx = safeItemIndex * ITEM_HEIGHT - centerOffset;
     reel.finalItemIndex = safeItemIndex;
     applyReelPosition(reel);
@@ -444,7 +411,7 @@ function rebaseReelsToWinner(winnerIndex) {
 
 function spinReel(
   reel,
-  winnerIndex,
+  targetDigit,
   extraLoops,
   pixelsPerMs,
   onStop
@@ -454,7 +421,7 @@ function spinReel(
 
     const target = calculateTargetPosition(
       reel,
-      winnerIndex,
+      targetDigit,
       extraLoops
     );
 
@@ -788,7 +755,7 @@ async function doDraw(context) {
 
   lever?.classList.add('no-glow');
   const winner = available[randomIndex(available.length)];
-  const winnerIndex = eligibleNames.findIndex(person => person.id === winner.id);
+  const winnerDigits = winner.drawCode.split('');
   drawnWinners.add(winner.id);
 
   try {
@@ -796,20 +763,20 @@ async function doDraw(context) {
     playAudio(drawSound);
 
     const nominalDistance =
-      (EXTRA_LOOPS * eligibleNames.length + 8) * ITEM_HEIGHT;
+      (EXTRA_LOOPS * 10 + 8) * ITEM_HEIGHT;
     const pixelsPerMs = nominalDistance / BASE_SPIN_DURATION;
     const loopsPerStop = Math.max(
       1,
       Math.ceil(
         (pixelsPerMs * STOP_GAP) /
-        (eligibleNames.length * ITEM_HEIGHT)
+        (10 * ITEM_HEIGHT)
       )
     );
 
     const spinTasks = reels.map((reel, index) =>
       spinReel(
         reel,
-        winnerIndex,
+        winnerDigits[index],
         EXTRA_LOOPS + index * loopsPerStop,
         pixelsPerMs,
         () => highlightReel(index)
@@ -839,7 +806,7 @@ async function doDraw(context) {
         indicator.classList.remove('is-visible');
       });
       clearReelHighlights();
-      rebaseReelsToWinner(winnerIndex);
+      rebaseReelsToWinner(winner.drawCode);
       startAutoScroll();
     }, 1000);
   }
@@ -1009,14 +976,31 @@ $('#show-winners-btn')?.addEventListener('click', () => {
   window.open('winnersData.html', '_blank');
 });
 
-$('#clear-all-btn')?.addEventListener('click', () => {
-  if (!confirm('確定清除所有中獎紀錄？')) return;
+$('#clear-all-btn')?.addEventListener('click', async () => {
+  // 防呆：沒有中獎名單就不觸發清除確認
+  if (!winnerData.length) {
+    showToast('目前沒有中獎紀錄可清除。');
+    return;
+  }
+
+  const confirmed = await askConfirmToast(
+    '確定清除所有中獎紀錄？',
+    '確定清除',
+    '取消'
+  );
+
+  if (!confirmed) return;
+
   winnerData = [];
   drawnWinners.clear();
   winnerList.innerHTML = '';
+
   localStorage.removeItem(`${STORAGE_KEY}_winnerData`);
   localStorage.removeItem(`${STORAGE_KEY}_drawnWinners`);
+
   updateCounts();
+
+  showToast('所有中獎紀錄已清除。');
 });
 
 (function restoreState() {
