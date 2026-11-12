@@ -666,6 +666,8 @@ document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
     shareInput.value = '';
     shareInput.dataset.id = '';
     shareInput.dataset.recordId = '';
+    shareInput.readOnly = false;
+    shareDropdown.style.display = 'none';
     amountInput.value = '';
     balanceInput.value = '';
 
@@ -724,14 +726,23 @@ function getCashProvider() {
 }
 
 /* 幸運分享：只選仍有可分享餘額的既有中獎紀錄。 */
-shareInput?.addEventListener('focus', () => {
+function renderShareMatches() {
   shareDropdown.innerHTML = '';
+  if (shareInput.readOnly) {
+    shareDropdown.style.display = 'none';
+    return;
+  }
+
+  const keyword = shareInput.value.trim().toLowerCase();
   const shareable = winnerData.slice().reverse().filter(record => recordAvailableAmount(record) > 0);
-  shareable.forEach(record => {
+  const matches = shareable.filter(record =>
+    `${record.drawCode} ${record.id} ${record.name}`
+  );
+  matches.forEach(record => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'list-group-item list-group-item-action';
-    button.textContent = `${record.drawCode}｜${record.dept} - ${record.id} - ${record.name}｜可分享 ${recordAvailableAmount(record).toLocaleString()} 元`;
+    button.textContent = `${record.drawCode}｜${record.id}｜${record.name}`;
     button.addEventListener('mousedown', event => {
       event.preventDefault();
       shareInput.dataset.id = record.id;
@@ -742,12 +753,14 @@ shareInput?.addEventListener('focus', () => {
     });
     shareDropdown.appendChild(button);
   });
-  shareDropdown.style.display = shareable.length ? 'block' : 'none';
+  shareDropdown.style.display = matches.length ? 'block' : 'none';
   if (!shareable.length) showToast('目前沒有可分享餘額的中獎者。');
-});
+}
+shareInput?.addEventListener('focus', renderShareMatches);
 shareInput?.addEventListener('input', () => {
   shareInput.dataset.id = '';
   shareInput.dataset.recordId = '';
+  renderShareMatches();
 });
 amountInput?.addEventListener('input', handleShareAmountInput);
 balanceBtn?.addEventListener('click', () => {
@@ -826,7 +839,12 @@ async function doDraw(context) {
   const available = eligibleNames.filter(person => !drawnWinners.has(person.id));
   if (!available.length) return showToast('所有具備抽獎碼的人都已中獎。');
   const lotteryButton = document.querySelector(".lottery-button");
+  let shareDrawRecorded = false;
   isDrawing = true;
+  if (context.value === '9') {
+    shareInput.readOnly = true;
+    shareDropdown.style.display = 'none';
+  }
   $('#start-draw-btn')?.setAttribute('disabled', 'disabled');
   lotteryButton?.classList.add("pull");
 
@@ -871,12 +889,14 @@ async function doDraw(context) {
     await Promise.all(spinTasks);
     lotteryButton?.classList.remove("pull");
     recordWinner(winner, context);
+    shareDrawRecorded = true;
     stopAudio(drawSound);
     playAudio(winSound);
     await new Promise(resolve => setTimeout(resolve, 1500));
   } catch (error) {
     console.error(error);
     drawnWinners.delete(winner.id);
+    if (context.value === '9' && !shareDrawRecorded) shareInput.readOnly = false;
     showToast('抽獎發生錯誤，本次未記錄。');
   } finally {
     isDrawing = false;
@@ -952,7 +972,7 @@ function createWinnerItem(record) {
       </p>
 
       <p class="winner-share-person">
-        ${escapeHtml(record.dept)} - ${escapeHtml(record.id)} - ${escapeHtml(record.name)}
+        ${escapeHtml(record.dept)} - ${escapeHtml(record.name)}
       </p>
 
       <p class="winner-share-source">
@@ -974,7 +994,7 @@ function createWinnerItem(record) {
     </p>
 
     <p class="winner-person">
-      ${escapeHtml(record.dept)} - ${escapeHtml(record.id)} - ${escapeHtml(record.name)}
+      ${escapeHtml(record.dept)} - ${escapeHtml(record.name)}
     </p>
 
     ${record.bonusSource
@@ -1051,7 +1071,7 @@ $('#export-btn')?.addEventListener('click', () => {
   const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, '中獎名單');
-  XLSX.writeFile(workbook, '大寶2026年尾牙中獎名單.xlsx');
+  XLSX.writeFile(workbook, '大寶2027年尾牙中獎名單.xlsx');
 });
 $('#show-winners-btn')?.addEventListener('click', () => {
   localStorage.setItem('winnerData', JSON.stringify(winnerData));
