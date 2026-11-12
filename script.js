@@ -12,7 +12,7 @@ let lastAutoTime = 0;
 
 const ITEM_HEIGHT = 90;
 const REEL_COUNT = 4;
-const MIN_REEL_ITEMS = 240;
+const MIN_REEL_ITEMS = 120;
 const AUTO_SPEED = 72;
 const STOP_GAP = 550;
 const BASE_SPIN_DURATION = 3200;
@@ -278,10 +278,8 @@ function clearReels() {
   });
 }
 
-/* 建立足夠長的循環資料，避免人少時滑到內容尾端出現空白。 */
 function populateReels() {
   clearReels();
-  if (!eligibleNames.length) return;
 
   // 純視覺隨機序列：四軸各自產生 0～9，與名單流水碼完全脫鉤。
   // 同一段序列複製兩次，讓待機自動滾動可以無縫回捲。
@@ -311,7 +309,7 @@ function applyReelPosition(reel) {
   reel.el.style.transform = `translate3d(0, -${reel.positionPx}px, 0)`;
 }
 
-/* 自動滾動時只在完全相同人物週期上重定位，畫面不會跳。 */
+
 function normalizeAutoPosition(reel) {
   if (!reel.cycleHeight) return;
   while (reel.positionPx >= reel.cycleHeight) {
@@ -355,24 +353,61 @@ function stopAutoScroll() {
   }
 }
 
-/* 從目前位置往下找 winner 的下一個安全出現位置。
-   終點一開始就固定，最後一格不再強制改號，因此不會 3 突跳 1。 */
 function calculateTargetPosition(reel, targetDigit, extraLoops) {
   const viewport = $('.scroll-viewport');
-  const centerOffset = viewport.offsetHeight / 2 - ITEM_HEIGHT / 2;
+  const centerOffset =
+    viewport.offsetHeight / 2 - ITEM_HEIGHT / 2;
   const currentCenterItem = Math.ceil(
     (reel.positionPx + centerOffset) / ITEM_HEIGHT
   );
-  const minimumAdvanceItems = extraLoops * 10 + 8;
-  const targetItem = currentCenterItem + minimumAdvanceItems + randomIndex(10);
+
+  const minimumAdvanceItems =
+    extraLoops * 10 + 8;
+
+  const targetItem =
+    currentCenterItem +
+    minimumAdvanceItems +
+    randomIndex(10);
 
   extendReels(targetItem + 12);
-  // 只有最後停止格指定為實際中獎碼；其餘格子全部是純隨機數字。
-  reel.items[targetItem].textContent = String(targetDigit);
+
+  /*
+   * 單一循環實際包含的格數。
+   * 例如 cycleHeight 是 120 格的高度，
+   * baseItemCount 就會是 120。
+   */
+  const baseItemCount = Math.round(
+    reel.cycleHeight / ITEM_HEIGHT
+  );
+
+  /*
+   * 找出 targetItem 在基本循環中的對應位置。
+   *
+   * 例如：
+   * targetItem = 265
+  const logicalIndex =
+    ((targetItem % baseItemCount) + baseItemCount) %
+    baseItemCount;
+
+  for (
+    let itemIndex = logicalIndex;
+    itemIndex < reel.items.length;
+    itemIndex += baseItemCount
+  ) {
+    reel.items[itemIndex].textContent =
+      String(targetDigit);
+  }
+
+  /*
+   * 額外確保實際停止位置一定正確。
+   */
+  reel.items[targetItem].textContent =
+    String(targetDigit);
 
   return {
     targetItem,
-    targetPositionPx: targetItem * ITEM_HEIGHT - centerOffset
+    targetPositionPx:
+      targetItem * ITEM_HEIGHT - centerOffset
   };
 }
 
@@ -388,8 +423,7 @@ function extendReels(requiredLength) {
   });
 }
 
-// 抽獎完成後，把同一位中獎者無感搬回安全區。
-// 畫面仍是同一組四碼，但下一次抽獎不會從內容尾端繼續累積。
+
 function rebaseReelsToWinner(winnerCode) {
   const viewport = $('.scroll-viewport');
   const centerOffset = viewport.offsetHeight / 2 - ITEM_HEIGHT / 2;
@@ -759,7 +793,6 @@ async function doDraw(context) {
   drawnWinners.add(winner.id);
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 450));
     playAudio(drawSound);
 
     const nominalDistance =
@@ -806,7 +839,6 @@ async function doDraw(context) {
         indicator.classList.remove('is-visible');
       });
       clearReelHighlights();
-      rebaseReelsToWinner(winner.drawCode);
       startAutoScroll();
     }, 1000);
   }
