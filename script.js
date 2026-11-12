@@ -864,6 +864,7 @@ function recordWinner(winner, context) {
     prize: context.prizeName,
     prizeValue: Number(value),
     bonusSource: source ? `${source.drawCode}｜${source.dept} - ${source.id} - ${source.name}` : '',
+    bonus: source ? `${source.dept} - ${source.name}` : '',
     bonusSourceId: source?.id || '',
     bonusSourceRecordId: source?.recordId || '',
     prizeAmounts: value === '9' ? context.amount : fixedAmount,
@@ -881,21 +882,81 @@ function recordWinner(winner, context) {
   updateCounts();
   saveState();
 }
+
 function createWinnerItem(record) {
   const item = document.createElement('li');
   const received = recordReceivedAmount(record);
   const shared = recordSharedAmount(record);
   const available = recordAvailableAmount(record);
+
+  if (Number(record.prizeValue) === 9) {
+    const shareAmount = Number(record.prizeAmounts || 0).toLocaleString();
+    const cashBonus = Number(record.specialBonus || 0);
+
+    const amountText = cashBonus > 0
+      ? `${shareAmount} + 現金加碼：${cashBonus.toLocaleString()}`
+      : shareAmount;
+
+    item.innerHTML = `
+      <p class="winner-share-summary">
+        ${escapeHtml(record.prize)}【金額：${amountText}】：
+      </p>
+
+      <p class="winner-share-person">
+        ${escapeHtml(record.dept)} - ${escapeHtml(record.id)} - ${escapeHtml(record.name)}
+      </p>
+
+      <p class="winner-share-source">
+        【${escapeHtml(record.bonus || '')} - 幸運分享】
+      </p>
+    `;
+
+    return item;
+  }
+
   item.innerHTML = `
-    <p>${escapeHtml(record.prize)}${received ? `【入帳金額：${received.toLocaleString()}】` : ''}</p>
-    <p class="winner-code">抽獎碼：${escapeHtml(record.drawCode)}</p>
-    <p class="winner-person">${escapeHtml(record.dept)} - ${escapeHtml(record.id)} - ${escapeHtml(record.name)}</p>
-    ${record.bonusSource ? `<p style="color:#D64545;">【幸運分享來源：${escapeHtml(record.bonusSource)}｜分享 ${Number(record.prizeAmounts || 0).toLocaleString()} 元】</p>` : ''}
-    ${Number(record.specialBonus || 0) > 0 ? `<p style="color:#D64545;">【現金加碼：${Number(record.specialBonus).toLocaleString()} 元${record.bonus2Source ? `｜加碼來源：${escapeHtml(record.bonus2Source)}` : ''}】</p>` : ''}
-    ${shared ? `<p style="color:#7A4A00;">【已分享：${shared.toLocaleString()}｜剩餘：${available.toLocaleString()}】</p>` : ''}
+    <p>
+      ${escapeHtml(record.prize)}
+      ${received ? `【中獎金額：${received.toLocaleString()}】` : ''}
+    </p>
+
+    <p class="winner-code">
+      抽獎碼：${escapeHtml(record.drawCode)}
+    </p>
+
+    <p class="winner-person">
+      ${escapeHtml(record.dept)} - ${escapeHtml(record.id)} - ${escapeHtml(record.name)}
+    </p>
+
+    ${record.bonusSource
+      ? `<p style="color:#D64545;">
+          【幸運分享來源：${escapeHtml(record.bonus)}｜幸運分享】
+         </p>`
+      : ''
+    }
+
+    ${Number(record.specialBonus || 0) > 0
+      ? `<p style="color:#D64545;">
+          【現金加碼：${Number(record.specialBonus).toLocaleString()} 元
+          ${record.bonus2Source
+            ? `｜加碼來源：${escapeHtml(record.bonus2Source)}`
+            : ''
+          }】
+         </p>`
+      : ''
+    }
+
+    ${shared
+      ? `<p style="color:#7A4A00;">
+          【已分享：${shared.toLocaleString()}】
+         </p>`
+      : ''
+    }
   `;
+
   return item;
 }
+
 function updateCounts() {
   const eligibleIds = new Set(eligibleNames.map(person => person.id));
   const won = [...drawnWinners].filter(id => eligibleIds.has(id)).length;
