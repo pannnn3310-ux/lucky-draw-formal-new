@@ -720,7 +720,7 @@ ol, ul {
 .slot-machine-shell::after {
   content:"";
   position:absolute;
-  top:30px;
+  top:40px;
   right:5px;
   bottom:30px;
   left:5px;
