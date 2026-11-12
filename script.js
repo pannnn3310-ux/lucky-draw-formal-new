@@ -846,7 +846,7 @@ function announceWinner(winner) {
   }
 
   winnerAnnouncementCode.textContent = winner.drawCode;
-  winnerAnnouncementName.textContent = `${winner.dept} - ${winner.name}`;
+  winnerAnnouncementName.textContent = `🎉🎉 ${winner.dept} - ${winner.name} 🎉🎉`;
   winnerAnnouncement.hidden = false;
   winnerAnnouncement.setAttribute('aria-hidden', 'false');
   winnerAnnouncement.classList.remove('is-active');
