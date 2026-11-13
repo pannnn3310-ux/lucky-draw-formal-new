@@ -7,6 +7,7 @@ let eligibleNames = [];
 let winnerData = [];
 let drawnWinners = new Set();
 let isDrawing = false;
+let isImportingNames = false;
 let autoScrollId = null;
 let lastAutoTime = 0;
 
@@ -63,6 +64,11 @@ function normalizeId(value) { return String(value ?? '').trim(); }
 function normalizeCode(value) {
   const code = String(value ?? '').trim();
   return code ? code.padStart(4, '0') : '';
+}
+function isCurrentEligibleEntry(person) {
+  return allNames.includes(person) &&
+    eligibleNames.includes(person) &&
+    /^\d{4}$/.test(person.drawCode);
 }
 function escapeHtml(value) {
   return String(value ?? '')
@@ -601,10 +607,21 @@ function clearReelHighlights() {
 fileInput?.addEventListener('change', event => {
   const file = event.target.files?.[0];
   if (!file) return;
+  if (isDrawing) {
+    fileInput.value = '';
+    showToast('抽獎進行中，請待本次抽獎完成後再匯入名單。');
+    return;
+  }
 
+  isImportingNames = true;
   const reader = new FileReader();
   reader.onload = e => {
     try {
+      if (isDrawing) {
+        showToast('抽獎已開始，本次匯入取消，請稍後重新匯入。');
+        return;
+      }
+
       stopAutoScroll();
       const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -654,7 +671,14 @@ fileInput?.addEventListener('change', event => {
     } catch (error) {
       console.error(error);
       showToast('Excel 匯入失敗，請檢查檔案格式。');
+    } finally {
+      isImportingNames = false;
     }
+  };
+  reader.onerror = () => {
+    isImportingNames = false;
+    console.error('Excel 檔案讀取失敗：', reader.error);
+    showToast('Excel 檔案讀取失敗，請重新選擇檔案。');
   };
   reader.readAsArrayBuffer(file);
 });
@@ -826,6 +850,7 @@ async function requestDraw(event) {
   const value = prizeBtn.dataset.value;
   if (!value) return showToast('請先選擇獎項。');
   if (isDrawing) return;
+  if (isImportingNames) return showToast('名單匯入中，請完成後再開始抽獎。');
   if (!allNames.length) return showToast('請先匯入完整名單。');
   if (!eligibleNames.length) return showToast('沒有具備抽獎碼的人員可抽。');
   const count = winnerData.filter(winner => String(winner.prizeValue) === value).length;
@@ -867,6 +892,11 @@ async function doDraw(context) {
   /* 正式中獎者永遠只從 eligibleNames 抽。 */
   const available = eligibleNames.filter(person => !drawnWinners.has(person.id));
   if (!available.length) return showToast('所有具備抽獎碼的人都已中獎。');
+  const winner = available[randomIndex(available.length)];
+  if (!isCurrentEligibleEntry(winner)) {
+    showToast('抽獎資料與目前名單不一致，已取消本次抽獎。');
+    return;
+  }
   const lotteryButton = document.querySelector(".lottery-button");
   let shareDrawRecorded = false;
   isDrawing = true;
@@ -875,6 +905,7 @@ async function doDraw(context) {
     shareDropdown.style.display = 'none';
   }
   $('#start-draw-btn')?.setAttribute('disabled', 'disabled');
+  if (fileInput) fileInput.disabled = true;
   lotteryButton?.classList.add("pull");
 
   stopAutoScroll();
@@ -885,7 +916,6 @@ async function doDraw(context) {
   });
 
   lever?.classList.add('no-glow');
-  const winner = available[randomIndex(available.length)];
   const winnerDigits = winner.drawCode.split('');
   drawnWinners.add(winner.id);
 
@@ -916,6 +946,12 @@ async function doDraw(context) {
     );
 
     await Promise.all(spinTasks);
+    const stoppedDrawCode = reels.map(reel =>
+      reel.items[reel.highlightedItemIndex]?.textContent.trim() || ''
+    ).join('');
+    if (stoppedDrawCode !== winner.drawCode) {
+      throw new Error('轉輪停止碼與中獎名單不一致，本次未登記，請重新抽獎。');
+    }
     lotteryButton?.classList.remove("pull");
     recordWinner(winner, context);
     shareDrawRecorded = true;
@@ -931,11 +967,14 @@ async function doDraw(context) {
     console.error(error);
     drawnWinners.delete(winner.id);
     if (context.value === '9' && !shareDrawRecorded) shareInput.readOnly = false;
-    showToast('抽獎發生錯誤，本次未記錄。');
+    showToast(error instanceof Error && error.message.includes('本次未登記')
+      ? error.message
+      : '抽獎發生錯誤，本次未記錄。');
   } finally {
     isDrawing = false;
     lotteryButton?.classList.remove("pull");
     $('#start-draw-btn')?.removeAttribute('disabled');
+    if (fileInput) fileInput.disabled = false;
     lever?.classList.remove('no-glow');
     // 不立刻重啟，保留結果短暫停格後再平順滾動。
     setTimeout(() => {
@@ -951,6 +990,9 @@ async function doDraw(context) {
 function recordWinner(winner, context) {
   const value = context.value;
   const source = context.shareSource;
+  if (!isCurrentEligibleEntry(winner)) {
+    throw new Error('中獎者或流水碼已不在目前名單中，已取消登記。');
+  }
   if (value === '9') {
     if (!source || !winnerData.includes(source)) throw new Error('幸運分享來源已失效');
     const available = recordAvailableAmount(source);
