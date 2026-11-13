@@ -180,23 +180,28 @@ function renderList(data) {
 
   data.forEach(w => {
     const li = document.createElement('li');
-
     const bonusText = w.specialBonus ? `  ${w.specialBonus}` : '';
     const amountText = w.prizeAmounts ? w.prizeAmounts : '';
+    const prize = document.createElement('span');
+    prize.className = 'left-col fs-4';
+    prize.textContent = `${w.prize}【金額：${amountText}${bonusText}元】`;
 
-    const shareHTML = (w.prizeValue === 9 && w.shareToName)
-    ? `<div class="left-col fs-4">分享人：${w.shareToName}</div>`
-    : '';
+    const share = document.createElement('span');
+    share.className = 'center-col fs-4';
+    const shareSource = w.bonus || w.shareToName || '';
+    // 分享來源使用實際紀錄欄位並以 textContent 輸出，兼容舊欄位且避免 HTML 注入。
+    if (w.prizeValue === 9 && shareSource) {
+      const shareName = document.createElement('div');
+      shareName.className = 'left-col fs-4';
+      shareName.textContent = `分享人：${shareSource}`;
+      share.appendChild(shareName);
+    }
 
-    li.innerHTML = `
-      <span class="left-col fs-4">
-        ${w.prize}【金額：${amountText}${bonusText}元】
-      </span>
-      <span class="center-col fs-4">${shareHTML}</span>
-      <span class="right-col fs-4">
-        ${w.dept} - ${w.name}
-      </span>
-    `;
+    const person = document.createElement('span');
+    person.className = 'right-col fs-4';
+    person.textContent = `${w.dept} - ${w.name}`;
+
+    li.append(prize, share, person);
     list.appendChild(li);
   });
 }

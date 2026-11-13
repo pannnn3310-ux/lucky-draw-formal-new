@@ -80,7 +80,11 @@ function showToast(message) {
   const body = $('#list-toast-body');
   const element = $('#list-toast');
   if (!body || !element) return;
-  body.innerHTML = `<p class="m-0">${message}</p>`;
+  // Toast 訊息一律以純文字呈現，避免匯入資料被解析成 HTML。
+  const paragraph = document.createElement('p');
+  paragraph.className = 'm-0';
+  paragraph.textContent = message;
+  body.replaceChildren(paragraph);
   new bootstrap.Toast(element).show();
 }
 function askConfirmToast(message, yesLabel, noLabel) {
@@ -765,8 +769,9 @@ function renderShareMatches() {
 
   const keyword = shareInput.value.trim().toLowerCase();
   const shareable = winnerData.slice().reverse().filter(record => recordAvailableAmount(record) > 0);
+  // 依使用者輸入的關鍵字篩選可分享的中獎紀錄。
   const matches = shareable.filter(record =>
-    `${record.drawCode} ${record.id} ${record.name}`
+    `${record.drawCode} ${record.id} ${record.name}`.toLowerCase().includes(keyword)
   );
   matches.forEach(record => {
     const button = document.createElement('button');
@@ -889,10 +894,19 @@ function announceWinner(winner) {
 }
 
 async function doDraw(context) {
-  /* 正式中獎者永遠只從 eligibleNames 抽。 */
-  const available = eligibleNames.filter(person => !drawnWinners.has(person.id));
-  if (!available.length) return showToast('所有具備抽獎碼的人都已中獎。');
-  const winner = available[randomIndex(available.length)];
+  // 先從未中獎者的抽獎碼中抽取，再以唯一抽獎碼對應中獎人員。
+  const availableByCode = new Map(
+    eligibleNames
+      .filter(person => !drawnWinners.has(person.id))
+      .map(person => [person.drawCode, person])
+  );
+  const availableCodes = [...availableByCode.keys()];
+  if (!availableCodes.length) return showToast('所有具備抽獎碼的人都已中獎。');
+  const winner = availableByCode.get(availableCodes[randomIndex(availableCodes.length)]);
+  if (!winner) {
+    showToast('抽獎碼與目前名單不一致，已取消本次抽獎。');
+    return;
+  }
   if (!isCurrentEligibleEntry(winner)) {
     showToast('抽獎資料與目前名單不一致，已取消本次抽獎。');
     return;
@@ -1021,11 +1035,19 @@ function recordWinner(winner, context) {
       : '',
     sharedAmount: 0
   };
+  const previousSharedAmount = source?.sharedAmount;
   if (source) source.sharedAmount = recordSharedAmount(source) + context.amount;
   winnerData.push(record);
+  // 儲存失敗時回滾畫面資料，讓抽獎錯誤處理能一致撤銷中獎狀態。
+  try {
+    saveState();
+  } catch (error) {
+    winnerData.pop();
+    if (source) source.sharedAmount = previousSharedAmount;
+    throw error;
+  }
   renderWinnerList();
   updateCounts();
-  saveState();
 }
 
 function createWinnerItem(record) {
@@ -1104,8 +1126,11 @@ function updateCounts() {
 }
 
 function saveState() {
-  localStorage.setItem(`${STORAGE_KEY}_winnerData`, JSON.stringify(winnerData));
-  localStorage.setItem(`${STORAGE_KEY}_drawnWinners`, JSON.stringify([...drawnWinners]));
+  // 將紀錄與已中獎工號合併為單一寫入，避免兩個儲存鍵只更新一半。
+  localStorage.setItem(`${STORAGE_KEY}_state`, JSON.stringify({
+    winnerData,
+    drawnWinners: [...drawnWinners]
+  }));
 }
 
 $('#export-btn')?.addEventListener('click', () => {
@@ -1166,6 +1191,7 @@ $('#clear-all-btn')?.addEventListener('click', async () => {
   drawnWinners.clear();
   winnerList.innerHTML = '';
 
+  localStorage.removeItem(`${STORAGE_KEY}_state`);
   localStorage.removeItem(`${STORAGE_KEY}_winnerData`);
   localStorage.removeItem(`${STORAGE_KEY}_drawnWinners`);
 
@@ -1176,22 +1202,33 @@ $('#clear-all-btn')?.addEventListener('click', async () => {
 
 (function restoreState() {
   try {
+    // 優先讀取合併儲存格式；沒有時沿用舊版兩個儲存鍵以相容既有資料。
+    const savedState = localStorage.getItem(`${STORAGE_KEY}_state`);
     const savedWinners = localStorage.getItem(`${STORAGE_KEY}_winnerData`);
     const savedDrawn = localStorage.getItem(`${STORAGE_KEY}_drawnWinners`);
-    if (savedWinners) {
-      const parsed = JSON.parse(savedWinners);
-      winnerData = Array.isArray(parsed) ? parsed : [];
-      winnerData.forEach(record => {
-        record.recordId ||= makeRecordId();
-        record.createdAt ||= '';
-        record.sharedAmount = Number(record.sharedAmount ?? record.balance ?? 0);
-        delete record.balance;
-        delete record.bonus2Id;
-        record.prizeAmounts = Number(record.prizeAmounts || 0);
-        record.specialBonus = Number(record.specialBonus || 0);
-      });
+    if (savedState) {
+      const parsed = JSON.parse(savedState);
+      winnerData = Array.isArray(parsed.winnerData) ? parsed.winnerData : [];
+      drawnWinners = new Set(Array.isArray(parsed.drawnWinners) ? parsed.drawnWinners : []);
     }
-    if (savedDrawn) drawnWinners = new Set(JSON.parse(savedDrawn));
+    if (savedWinners) {
+      if (!savedState) {
+        const parsed = JSON.parse(savedWinners);
+        winnerData = Array.isArray(parsed) ? parsed : [];
+      }
+    }
+    if (savedDrawn && !savedState) drawnWinners = new Set(JSON.parse(savedDrawn));
+    winnerData.forEach(record => {
+      record.recordId ||= makeRecordId();
+      record.createdAt ||= '';
+      record.sharedAmount = Number(record.sharedAmount ?? record.balance ?? 0);
+      delete record.balance;
+      delete record.bonus2Id;
+      record.prizeAmounts = Number(record.prizeAmounts || 0);
+      record.specialBonus = Number(record.specialBonus || 0);
+      // 以中獎紀錄補齊已中獎工號，避免舊版分開儲存時狀態不同步造成重複中獎。
+      if (record.id != null) drawnWinners.add(record.id);
+    });
     renderWinnerList();
   } catch (error) {
     console.error('還原資料失敗：', error);
