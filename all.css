@@ -710,34 +710,224 @@ ol, ul {
         0 0 6px #ff9e22,
         0 0 12px rgba(255, 220, 65, 0.8);
 }
-.slot-bulbs { position:absolute; left:34px; right:34px; height:16px; z-index:4; pointer-events:none; }
+
+/* =========================
+燈泡容器共同設定
+   ========================= */
+
+.slot-bulbs {
+  position: absolute;
+  z-index: 10;
+  pointer-events: none;
+}
+
+
+/* =========================上下燈泡
+   ========================= */
+
+.slot-bulbs:not(.slot-bulbs-side) {
+  left: 34px;
+  right: 34px;
+  height: 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+
+/* 上排位置 */
 .slot-bulbs-top {
-  top:10px;
-  left:5px;
-  right:5px;
-  clip-path:inset(0 round 60px 60px 0 0);
+  top: 8px;
 }
-.slot-bulbs-bottom { bottom:14px; left:5px; right:5px; }
-.slot-bulbs::before {
-  content:"";
-  position:absolute; inset:0;
-  background: radial-gradient(circle 12px at center, #fffbd0 0 24%, #ffd93f 26% 43%, transparent 46%) 0 50% / 52px 16px repeat-x;
-  filter: drop-shadow(0 0 7px #ffe347);
+
+
+/* 下排位置 */
+.slot-bulbs-bottom {
+  left: 5px;
+  right: 5px;
+  bottom: 14px;
 }
-.slot-machine-shell::after {
-  content:"";
-  position:absolute;
-  top:40px;
-  right:5px;
-  bottom:30px;
-  left:5px;
-  z-index:4;
-  pointer-events:none;
+
+
+/* =========================
+左右燈泡
+   ========================= */
+
+.slot-bulbs-side {
+  top: 40px;
+  bottom: 30px;
+  width: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+
+.slot-bulbs-left {
+  left: 5px;
+}
+
+.slot-bulbs-right {
+  right: 5px;
+}
+
+/* ==================================================
+單顆燈泡
+   ================================================== */
+
+.slot-bulb {
+  position: relative;
+
+  display: block;
+  flex: 0 0 16px;
+
+  width: 16px;
+  height: 16px;
+
+  border-radius: 50%;
+
   background:
-    radial-gradient(circle 12px at center, #fffbd0 0 24%, #ffd93f 26% 43%, transparent 46%) left top -7px / 16px 32px repeat-y,
-    radial-gradient(circle 12px at center, #fffbd0 0 24%, #ffd93f 26% 43%, transparent 46%) right top -7px / 16px 32px repeat-y;
-  filter: drop-shadow(0 0 12px #ffe347);
+    radial-gradient(
+      circle at center,
+
+      #ffffff 0 15%,
+      #fffbd0 17% 27%,
+      #ffd93f 30% 44%,
+      transparent 47%
+    );
+
+  transform-origin: center;
+
+  animation:
+    slotBulbBreath 1.8s ease-in-out infinite;
 }
+
+
+/* ==================================================
+星芒
+平常就存在
+   ================================================== */
+
+.slot-bulb::before,
+.slot-bulb::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+
+  pointer-events: none;
+
+  opacity: .65;
+
+  transform:
+    translate(-50%, -50%)
+    scale(.88);
+}
+
+
+/* 橫向星芒 */
+
+.slot-bulb::before {
+  width: 30px;
+  height: 2px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 217, 63, 0.15) 15%,
+      #ffe96a 35%,
+      #ffffff 50%,
+      #ffe96a 65%,
+      rgba(255, 217, 63, 0.15) 85%,
+      transparent 100%
+    );
+}
+
+
+/* 縱向星芒 */
+.slot-bulb::after {
+  width: 2px;
+  height: 24px;
+  background:
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(255, 217, 63, 0.15) 15%,
+      #ffe96a 35%,
+      #ffffff 50%,
+      #ffe96a 65%,
+      rgba(255, 217, 63, 0.15) 85%,
+      transparent 100%
+    );
+}
+
+
+/* ==================================================
+平常呼吸效果
+   ================================================== */
+
+@keyframes slotBulbBreath {
+  0%,
+  100% {
+    opacity: .55;
+    filter:
+      brightness(.90)
+      drop-shadow(0 0 1px #ffd93f);
+    transform: scale(.94);
+  }
+
+
+  50% {
+    opacity: .92;
+    filter:
+      brightness(1.25)
+      drop-shadow(0 0 3px #ffe86a);
+    transform: scale(1.04);
+  }
+}
+
+
+/* ==================================================
+抽獎追逐燈
+   ================================================== */
+
+.slot-bulb.is-lit {
+  opacity: 1 !important;
+  filter:
+    brightness(1.9)
+    drop-shadow(0 0 2px #ffffff)
+    drop-shadow(0 0 4px #ffd93f) !important;
+  transform: scale(1.12);
+}
+
+
+/* 抽獎時橫向星芒加長 */
+
+.slot-bulb.is-lit::before {
+  width: 32px;
+  opacity: 1;
+  transform:
+    translate(-50%, -50%)
+    scale(1);
+}
+
+
+/* 抽獎時縱向星芒加長 */
+
+.slot-bulb.is-lit::after {
+  height: 32px;
+  opacity: 1;
+  transform:
+    translate(-50%, -50%)
+    scale(1);
+}
+
+
+.slot-machine-shell::after {
+  content:none;
+}
+
 .slot-machine-shell .slot {
   height: 286px;
   padding: 0 !important;

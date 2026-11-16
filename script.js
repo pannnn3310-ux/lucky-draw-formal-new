@@ -42,9 +42,83 @@ const balanceInput = $('#special-balance-input');
 const cashBonusLabel = $('#cash-bonus-label');
 const lever = $('.lever');
 const stick = $('.stick');
+const slotMachineShell = $('.slot-machine-shell');
 const drawSound = $('#draw-sound');
 const winSound = $('#win-sound');
 const donSound = $('#win-don');
+let slotBulbChaseId = null;
+let slotBulbs = [];
+
+function initializeSlotBulbs() {
+  if (!slotMachineShell) return;
+
+  const topBulbs = $('.slot-bulbs-top');
+  const rightBulbs = $('.slot-bulbs-right');
+  const bottomBulbs = $('.slot-bulbs-bottom');
+  const leftBulbs = $('.slot-bulbs-left');
+  if (!topBulbs || !rightBulbs || !bottomBulbs || !leftBulbs) return;
+
+  const createBulbs = (container, count) => {
+    const bulbs = Array.from({ length: count }, () => {
+      const bulb = document.createElement('span');
+      bulb.className = 'slot-bulb';
+      return bulb;
+    });
+    container.replaceChildren(...bulbs);
+    return bulbs;
+  };
+  const horizontalCount = Math.max(
+    2,
+    Math.floor((slotMachineShell.clientWidth - 10) / 52)
+  );
+  const verticalCount = Math.max(
+    2,
+    Math.floor((slotMachineShell.clientHeight - 70) / 32)
+  );
+
+  const top = createBulbs(topBulbs, horizontalCount);
+  const right = createBulbs(rightBulbs, verticalCount);
+  const bottom = createBulbs(bottomBulbs, horizontalCount);
+  const left = createBulbs(leftBulbs, verticalCount);
+  slotBulbs = [...top, ...right, ...bottom.reverse(), ...left.reverse()];
+}
+
+function startSlotBulbChase() {
+  if (!slotBulbs.length) return;
+
+  stopSlotBulbChase();
+  slotMachineShell?.classList.add('is-spinning');
+  let currentIndex = -1;
+
+  const bulbsLitAtOnce = 8;
+  const advance = () => {
+  for (let offset = 0; offset < bulbsLitAtOnce; offset++) {
+    const index = (currentIndex + offset + slotBulbs.length) % slotBulbs.length;
+    slotBulbs[index]?.classList.remove('is-lit');
+  }
+
+  currentIndex = (currentIndex + 1) % slotBulbs.length;
+
+  for (let offset = 0; offset < bulbsLitAtOnce; offset++) {
+    const index = (currentIndex + offset) % slotBulbs.length;
+    slotBulbs[index].classList.add('is-lit');
+  }
+};
+
+  advance();
+  slotBulbChaseId = window.setInterval(advance, 20);
+}
+
+function stopSlotBulbChase() {
+  if (slotBulbChaseId !== null) {
+    window.clearInterval(slotBulbChaseId);
+    slotBulbChaseId = null;
+  }
+  slotBulbs.forEach(bulb => bulb.classList.remove('is-lit'));
+  slotMachineShell?.classList.remove('is-spinning');
+}
+
+initializeSlotBulbs();
 
 //獎項金額
 const prizeAmounts = {
@@ -935,6 +1009,7 @@ async function doDraw(context) {
 
   try {
     playAudio(drawSound);
+    startSlotBulbChase();
 
     const nominalDistance =
       (EXTRA_LOOPS * 10 + 8) * ITEM_HEIGHT;
@@ -960,6 +1035,7 @@ async function doDraw(context) {
     );
 
     await Promise.all(spinTasks);
+    stopSlotBulbChase();
     const stoppedDrawCode = reels.map(reel =>
       reel.items[reel.highlightedItemIndex]?.textContent.trim() || ''
     ).join('');
@@ -986,6 +1062,7 @@ async function doDraw(context) {
       : '抽獎發生錯誤，本次未記錄。');
   } finally {
     isDrawing = false;
+    stopSlotBulbChase();
     lotteryButton?.classList.remove("pull");
     $('#start-draw-btn')?.removeAttribute('disabled');
     if (fileInput) fileInput.disabled = false;
