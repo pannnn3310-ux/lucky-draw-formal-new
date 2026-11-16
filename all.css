@@ -792,15 +792,15 @@ ol, ul {
       circle at center,
 
       #ffffff 0 15%,
-      #fffbd0 17% 27%,
-      #ffd93f 30% 44%,
+      #fdf8c1 17% 27%,
+      #dbc055 30% 44%,
       transparent 47%
     );
 
   transform-origin: center;
 
   animation:
-    slotBulbBreath 1.8s ease-in-out infinite;
+    slotBulbBreath 2.5s ease-in-out infinite;
 }
 
 
@@ -829,7 +829,7 @@ ol, ul {
 /* 橫向星芒 */
 
 .slot-bulb::before {
-  width: 30px;
+  width: 25px;
   height: 2px;
   background:
     linear-gradient(
@@ -848,7 +848,7 @@ ol, ul {
 /* 縱向星芒 */
 .slot-bulb::after {
   width: 2px;
-  height: 24px;
+  height: 25px;
   background:
     linear-gradient(
       180deg,
