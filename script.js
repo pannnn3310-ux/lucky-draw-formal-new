@@ -807,7 +807,7 @@ function renderCashMatches(keyword) {
     const row = document.createElement('button');
     row.type = 'button';
     row.className = 'dropdown-item';
-    row.textContent = `${person.id} - ${person.dept} - ${person.name}`;
+    row.textContent = `${person.id} - ${person.name}`;
     row.addEventListener('mousedown', event => {
       event.preventDefault();
       cashInput.dataset.id = person.id;
@@ -1045,6 +1045,13 @@ async function doDraw(context) {
     lotteryButton?.classList.remove("pull");
     recordWinner(winner, context);
     shareDrawRecorded = true;
+    if (context.value === '9') {
+      amountInput.value = '';
+      balanceInput.value = '';
+      balanceInput.style.display = 'none';
+      balanceBtn.style.display = 'block';
+      cashBonusLabel.style.display = 'none';
+    }
     stopAudio(drawSound);
     playAudio(winSound);
     try {
@@ -1056,12 +1063,12 @@ async function doDraw(context) {
   } catch (error) {
     console.error(error);
     drawnWinners.delete(winner.id);
-    if (context.value === '9' && !shareDrawRecorded) shareInput.readOnly = false;
     showToast(error instanceof Error && error.message.includes('本次未登記')
       ? error.message
       : '抽獎發生錯誤，本次未記錄。');
   } finally {
     isDrawing = false;
+    if (context.value === '9') shareInput.readOnly = false;
     stopSlotBulbChase();
     lotteryButton?.classList.remove("pull");
     $('#start-draw-btn')?.removeAttribute('disabled');
