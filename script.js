@@ -1,25 +1,21 @@
-/* 2026 尾牙四碼抽獎系統：平滑循環滾輪版
- * allNames: 完整名單，現金加碼以工號查找，不要求抽獎碼。
- * eligibleNames: 僅有效四碼者，正式抽獎只能從此名單抽出。
- */
-let allNames = [];
-let eligibleNames = [];
-let winnerData = [];
-let drawnWinners = new Set();
-let isDrawing = false;
-let isImportingNames = false;
-let autoScrollId = null;
-let lastAutoTime = 0;
+let allNames = []; //完整名單，現金加碼以工號查找，不要求抽獎碼。
+let eligibleNames = []; //取得有效四碼者，正式抽獎只能從此名單抽出。
+let winnerData = []; //中獎紀錄，包含獎項、金額、分享金額、現金加碼等資訊。
+let drawnWinners = new Set(); //已中獎人選
+let isDrawing = false;  // 抽獎狀態
+let isImportingNames = false; // 匯入名單狀態
+let autoScrollId = null; // 自動滾動動畫的ID
+let lastAutoTime = 0; // 上一次自動滾動的時間戳
 
-const ITEM_HEIGHT = 90;
-const REEL_COUNT = 4;
-const MIN_REEL_ITEMS = 120;
-const AUTO_SPEED = 72;
-const STOP_GAP = 550;
-const BASE_SPIN_DURATION = 3200;
-const DECELERATION_DURATION = 800;
-const EXTRA_LOOPS = 5;
-const STORAGE_KEY = 'lucky-draw-formal_2026';
+const ITEM_HEIGHT = 90; // 每個滾輪格子的高度
+const REEL_COUNT = 4;  // 四軸滾輪
+const MIN_REEL_ITEMS = 120; // 滾輪最少格數，避免自動滾動時太快就回捲。
+const AUTO_SPEED = 72; // 自動滾動速度，單位：像素/秒
+const STOP_GAP = 550; // 滾輪停止時，停止框與中獎格的距離，單位：像素
+const BASE_SPIN_DURATION = 3200; // 滾輪自動滾動的基本時間，單位：毫秒
+const DECELERATION_DURATION = 800; // 滾輪減速的時間，單位：毫秒
+const EXTRA_LOOPS = 5; // 滾輪在減速前，至少要多繞幾圈，避免中獎碼太早出現，單位：圈
+const STORAGE_KEY = 'lucky-draw-formal_2026_taiwan'; // localStorage 的 key，用於儲存中獎紀錄。
 
 
 const $ = selector => document.querySelector(selector);
@@ -49,6 +45,7 @@ const donSound = $('#win-don');
 let slotBulbChaseId = null;
 let slotBulbs = [];
 
+// 初始化四邊燈泡
 function initializeSlotBulbs() {
   if (!slotMachineShell) return;
 
@@ -81,8 +78,9 @@ function initializeSlotBulbs() {
   const bottom = createBulbs(bottomBulbs, horizontalCount);
   const left = createBulbs(leftBulbs, verticalCount);
   slotBulbs = [...top, ...right, ...bottom.reverse(), ...left.reverse()];
-}
+};
 
+// 啟動四邊燈泡追逐效果
 function startSlotBulbChase() {
   if (!slotBulbs.length) return;
 
@@ -90,35 +88,37 @@ function startSlotBulbChase() {
   slotMachineShell?.classList.add('is-spinning');
   let currentIndex = -1;
 
-  const bulbsLitAtOnce = 8;
+  const bulbsLitAtOnce = 8; // 同時點亮的燈泡數量
   const advance = () => {
-  for (let offset = 0; offset < bulbsLitAtOnce; offset++) {
-    const index = (currentIndex + offset + slotBulbs.length) % slotBulbs.length;
-    slotBulbs[index]?.classList.remove('is-lit');
-  }
+    for (let offset = 0; offset < bulbsLitAtOnce; offset++) {
+      const index = (currentIndex + offset + slotBulbs.length) % slotBulbs.length;
+      slotBulbs[index]?.classList.remove('is-lit');
+    };
 
-  currentIndex = (currentIndex + 1) % slotBulbs.length;
+    currentIndex = (currentIndex + 1) % slotBulbs.length;
 
-  for (let offset = 0; offset < bulbsLitAtOnce; offset++) {
-    const index = (currentIndex + offset) % slotBulbs.length;
-    slotBulbs[index].classList.add('is-lit');
-  }
-};
+    for (let offset = 0; offset < bulbsLitAtOnce; offset++) {
+      const index = (currentIndex + offset) % slotBulbs.length;
+      slotBulbs[index].classList.add('is-lit');
+    };
+  };
 
   advance();
-  slotBulbChaseId = window.setInterval(advance, 20);
-}
+  slotBulbChaseId = window.setInterval(advance, 20); // 每20秒更新一次燈泡狀態
+};
 
+// 停止四邊燈泡追逐效果
 function stopSlotBulbChase() {
   if (slotBulbChaseId !== null) {
     window.clearInterval(slotBulbChaseId);
     slotBulbChaseId = null;
-  }
+  };
   slotBulbs.forEach(bulb => bulb.classList.remove('is-lit'));
   slotMachineShell?.classList.remove('is-spinning');
-}
+};
 
-initializeSlotBulbs();
+
+initializeSlotBulbs(); // 初始化四邊燈泡
 
 //獎項金額
 const prizeAmounts = {
@@ -127,6 +127,7 @@ const prizeAmounts = {
   12: 3600, 13: 9000
 };
 
+//獎項數量
 const prizeLimits = {
   '1': 1, '2': 1, '3': 1, '4': 1,
   '5': 2, '6': 2, '7': 6, '8': 6,
@@ -134,22 +135,31 @@ const prizeLimits = {
   '12': 15, '13': 2
 };
 
-function normalizeId(value) { return String(value ?? '').trim(); }
+// 僅去除前後空白
+function normalizeId(value) { return String(value ?? '').trim(); };
+
+// 先去除前後空白，保留抽獎四碼
 function normalizeCode(value) {
-  const code = String(value ?? '').trim();
-  return code ? code.padStart(4, '0') : '';
-}
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+};
+
+// 判斷是否資料正確性、存在於可抽獎名單內且具備抽獎資格
 function isCurrentEligibleEntry(person) {
   return allNames.includes(person) &&
     eligibleNames.includes(person) &&
     /^\d{4}$/.test(person.drawCode);
-}
+};
+
+// 轉換HTML特殊字符為安全的HTML實體，防範XSS攻擊
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;').replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;').replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
-}
+};
+
+// Toast消息框
 function showToast(message) {
   const body = $('#list-toast-body');
   const element = $('#list-toast');
@@ -160,7 +170,9 @@ function showToast(message) {
   paragraph.textContent = message;
   body.replaceChildren(paragraph);
   new bootstrap.Toast(element).show();
-}
+};
+
+
 function askConfirmToast(message, yesLabel, noLabel) {
   const body = $('#confirm-toast-body');
   const element = $('#confirm-toast');
@@ -208,6 +220,7 @@ function playDon() {
   const audio = new Audio(donSound.src);
   audio.play().catch(() => {});
 }
+
 function duplicates(values) {
   const seen = new Set();
   const duplicate = new Set();
@@ -219,6 +232,7 @@ function makeRecordId() {
   if (globalThis.crypto?.randomUUID) return crypto.randomUUID();
   return `record-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
+
 function randomIndex(length) {
   if (!Number.isInteger(length) || length <= 0) throw new Error('無有效抽獎人數');
   if (!globalThis.crypto?.getRandomValues) return Math.floor(Math.random() * length);
@@ -227,15 +241,23 @@ function randomIndex(length) {
   do crypto.getRandomValues(buffer); while (buffer[0] >= limit);
   return buffer[0] % length;
 }
+
+// 計算該中獎紀錄已領取的金額，若尚未領取則回傳 0。
 function recordReceivedAmount(record) {
   return Number(record.prizeAmounts || 0) + Number(record.specialBonus || 0);
 }
+
+// 計算該中獎紀錄已分享出去的金額，若尚未分享則回傳 0。
 function recordSharedAmount(record) {
   return Number(record.sharedAmount || 0);
 }
+
+// 計算該中獎紀錄尚可分享的金額，若已分享完畢則回傳 0。
 function recordAvailableAmount(record) {
   return Math.max(Number(record.prizeAmounts || 0) - recordSharedAmount(record), 0);
 }
+
+// 根據分享輸入欄位的 dataset，找出對應的中獎紀錄。
 function findShareSource() {
   const recordId = shareInput?.dataset.recordId || '';
   if (recordId) return winnerData.find(record => record.recordId === recordId) || null;
@@ -331,7 +353,6 @@ const reels = Array.from({ length: REEL_COUNT }, () => ({
   items: [],
   positionPx: 0,
   cycleHeight: 0,
-  finalItemIndex: -1,
   highlightedItemIndex: -1
 }));
 
@@ -361,7 +382,6 @@ function clearReels() {
     reel.items = [];
     reel.positionPx = 0;
     reel.cycleHeight = 0;
-    reel.finalItemIndex = -1;
     reel.highlightedItemIndex = -1;
     reel.el.style.zIndex = '';
     reel.el.style.transform = 'translate3d(0, 0, 0)';
@@ -417,7 +437,7 @@ function normalizeStoppedReel(reel, targetDigit) {
     viewport.offsetHeight / 2 - ITEM_HEIGHT / 2;
 
   /*
-   * 將抽獎後累積很大的 positionPx，
+   * 將抽獎後累積很大的 function createWinnerItem(record) 
    * 立即換算回基本循環範圍。
    */
   reel.positionPx =
@@ -438,8 +458,6 @@ function normalizeStoppedReel(reel, targetDigit) {
     reel.items[normalizedItemIndex].textContent =
       String(targetDigit);
   }
-
-  reel.finalItemIndex = normalizedItemIndex;
 
   applyReelPosition(reel);
 
@@ -482,6 +500,7 @@ function stopAutoScroll() {
   }
 }
 
+// 確保滾輪無縫循環
 function calculateTargetPosition(reel, targetDigit, extraLoops) {
   const viewport = $('.scroll-viewport');
   const centerOffset =
@@ -490,55 +509,22 @@ function calculateTargetPosition(reel, targetDigit, extraLoops) {
     (reel.positionPx + centerOffset) / ITEM_HEIGHT
   );
 
-  const minimumAdvanceItems =
-    extraLoops * 10 + 8;
+  const minimumAdvanceItems = extraLoops * 10 + 8;
 
   const targetItem =
-    currentCenterItem +
-    minimumAdvanceItems +
-    randomIndex(10);
-
+    currentCenterItem + minimumAdvanceItems + randomIndex(10);
+  // 確保滾輪下方有足夠的格子可以滾動
   extendReels(targetItem + 12);
 
-  /*
-   * 單一循環實際包含的格數。
-   * 例如 cycleHeight 是 120 格的高度，
-   * baseItemCount 就會是 120。
-   */
-  const baseItemCount = Math.round(
-    reel.cycleHeight / ITEM_HEIGHT
-  );
-
-  /*
-   * 找出 targetItem 在基本循環中的對應位置。
-   *
-   * 例如：
-   * targetItem = 265
-  const logicalIndex =
-    ((targetItem % baseItemCount) + baseItemCount) %
-    baseItemCount;
-
-  for (
-    let itemIndex = logicalIndex;
-    itemIndex < reel.items.length;
-    itemIndex += baseItemCount
-  ) {
-    reel.items[itemIndex].textContent =
-      String(targetDigit);
-  }
-
-  /*
-   * 額外確保實際停止位置一定正確。
-   */
+  // 額外確保實際停止位置一定為目標中獎數字
   reel.items[targetItem].textContent =
     String(targetDigit);
 
   return {
     targetItem,
-    targetPositionPx:
-      targetItem * ITEM_HEIGHT - centerOffset
+    targetPositionPx: targetItem * ITEM_HEIGHT - centerOffset
   };
-}
+};
 
 function extendReels(requiredLength) {
   reels.forEach(reel => {
@@ -549,26 +535,6 @@ function extendReels(requiredLength) {
       reel.el.appendChild(symbol);
       reel.items.push(symbol);
     }
-  });
-}
-
-
-function rebaseReelsToWinner(winnerCode) {
-  const viewport = $('.scroll-viewport');
-  const centerOffset = viewport.offsetHeight / 2 - ITEM_HEIGHT / 2;
-  const winnerDigits = String(winnerCode)
-    .padStart(REEL_COUNT, '0')
-    .split('');
-
-  // 重建下一輪使用的隨機序列，但視覺中心仍保持剛才的中獎碼。
-  populateReels();
-  const safeItemIndex = 20;
-
-  reels.forEach((reel, reelIndex) => {
-    reel.items[safeItemIndex].textContent = winnerDigits[reelIndex];
-    reel.positionPx = safeItemIndex * ITEM_HEIGHT - centerOffset;
-    reel.finalItemIndex = safeItemIndex;
-    applyReelPosition(reel);
   });
 }
 
@@ -703,7 +669,7 @@ fileInput?.addEventListener('change', event => {
       stopAutoScroll();
       const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
 
       allNames = rows.slice(1).map((row, rowIndex) => {
         const dept = String(row[0] ?? '').trim();
@@ -714,11 +680,12 @@ fileInput?.addEventListener('change', event => {
         if (!dept || !id || !name) {
           console.warn(`Excel 第 ${rowIndex + 2} 列基本資料不完整，已略過。`);
           return null;
-        }
+        };
+
         if (drawCode && !/^\d{4}$/.test(drawCode)) {
           console.warn(`工號 ${id} 的抽獎碼格式不正確：${drawCode}`);
           return null;
-        }
+        };
         return { dept, id, name, drawCode };
       }).filter(Boolean);
 
@@ -890,7 +857,7 @@ function buildDrawContext(value) {
     cashProvider: null
   };
   if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(extraBonus) || extraBonus < 0) {
-    showToast('金額不可為負數或無效數字。');
+    showToast('金額不可為負數或低於2000元。');
     return null;
   }
   if (value === '9') {
@@ -967,8 +934,11 @@ function announceWinner(winner) {
   });
 }
 
+let postDrawTimer = null; // 放在函式外部管理收尾計時器
 async function doDraw(context) {
-  // 先從未中獎者的抽獎碼中抽取，再以唯一抽獎碼對應中獎人員。
+  if (isDrawing) return; // 先從未中獎者的抽獎碼中抽取，再以唯一抽獎碼對應中獎人員。
+  clearTimeout(postDrawTimer); // 清除上一輪尚未執行的收尾計時器
+
   const availableByCode = new Map(
     eligibleNames
       .filter(person => !drawnWinners.has(person.id))
@@ -986,11 +956,12 @@ async function doDraw(context) {
     return;
   }
   const lotteryButton = document.querySelector(".lottery-button");
-  let shareDrawRecorded = false;
+  let drawRecorded = false;
   isDrawing = true;
+
   if (context.value === '9') {
-    shareInput.readOnly = true;
-    shareDropdown.style.display = 'none';
+    if (shareInput) shareInput.readOnly = true;
+    if (shareDropdown) shareDropdown.style.display = 'none';
   }
   $('#start-draw-btn')?.setAttribute('disabled', 'disabled');
   if (fileInput) fileInput.disabled = true;
@@ -1044,7 +1015,7 @@ async function doDraw(context) {
     }
     lotteryButton?.classList.remove("pull");
     recordWinner(winner, context);
-    shareDrawRecorded = true;
+    drawRecorded = true;
     if (context.value === '9') {
       amountInput.value = '';
       balanceInput.value = '';
@@ -1062,20 +1033,31 @@ async function doDraw(context) {
     }
   } catch (error) {
     console.error(error);
-    drawnWinners.delete(winner.id);
-    showToast(error instanceof Error && error.message.includes('本次未登記')
-      ? error.message
-      : '抽獎發生錯誤，本次未記錄。');
+    if (!drawRecorded) {
+      drawnWinners.delete(winner.id);
+    }
+    showToast(
+      drawRecorded
+        ? '中獎紀錄已完成，但後續畫面處理發生錯誤。'
+        : (
+            error instanceof Error &&
+            error.message.includes('本次未登記')
+              ? error.message
+              : '抽獎發生錯誤，本次未記錄。'
+          )
+    );
   } finally {
     isDrawing = false;
+    stopAudio(drawSound); // 確保任何異常中斷都會關閉抽獎音效
     if (context.value === '9') shareInput.readOnly = false;
     stopSlotBulbChase();
     lotteryButton?.classList.remove("pull");
     $('#start-draw-btn')?.removeAttribute('disabled');
     if (fileInput) fileInput.disabled = false;
     lever?.classList.remove('no-glow');
+
     // 不立刻重啟，保留結果短暫停格後再平順滾動。
-    setTimeout(() => {
+    postDrawTimer = setTimeout(() => {
       stopIndicators.forEach(indicator => {
         indicator.classList.remove('is-visible');
       });
@@ -1138,7 +1120,6 @@ function createWinnerItem(record) {
   const item = document.createElement('li');
   const received = recordReceivedAmount(record);
   const shared = recordSharedAmount(record);
-  const available = recordAvailableAmount(record);
 
   if (Number(record.prizeValue) === 9) {
     const shareAmount = Number(record.prizeAmounts || 0).toLocaleString();
@@ -1215,6 +1196,11 @@ function saveState() {
     winnerData,
     drawnWinners: [...drawnWinners]
   }));
+  // 儲存最後匯出時間，方便使用者判斷是否需要重新匯出。
+  localStorage.setItem(
+    `${STORAGE_KEY}_lastExportAt`,
+    new Date().toISOString()
+  );
 }
 
 $('#export-btn')?.addEventListener('click', () => {
@@ -1278,6 +1264,7 @@ $('#clear-all-btn')?.addEventListener('click', async () => {
   localStorage.removeItem(`${STORAGE_KEY}_state`);
   localStorage.removeItem(`${STORAGE_KEY}_winnerData`);
   localStorage.removeItem(`${STORAGE_KEY}_drawnWinners`);
+  localStorage.removeItem('winnerData');
 
   updateCounts();
 
