@@ -308,6 +308,7 @@ ol, ul {
 
 #prize-btn {
   position: relative;
+  z-index: 6;
 }
 #prize-btn.dropdown-toggle {
   font-size: 3.5rem;
