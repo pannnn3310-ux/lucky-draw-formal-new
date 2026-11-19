@@ -964,6 +964,24 @@ shareInput?.addEventListener('input', () => {
   renderShareMatches();
 });
 amountInput?.addEventListener('input', handleShareAmountInput);
+amountInput?.addEventListener('keydown', event => {
+  if (event.key !== 'Enter' || event.repeat || prizeBtn.dataset.value !== '10') return;
+
+  event.preventDefault();
+  requestDraw(event);
+});
+balanceInput?.addEventListener('keydown', event => {
+  if (
+    event.key !== 'Enter' ||
+    event.repeat ||
+    prizeBtn.dataset.value !== '9' ||
+    balanceInput.style.display === 'none' ||
+    !balanceInput.value.trim()
+  ) return;
+
+  event.preventDefault();
+  requestDraw(event);
+});
 balanceBtn?.addEventListener('click', () => {
   balanceInput.style.display = 'block';
   balanceBtn.style.display = 'none';
