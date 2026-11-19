@@ -122,19 +122,123 @@ function stopSlotBulbChase() {
 
 initializeSlotBulbs(); // 初始化四邊燈泡
 
-//獎項金額
+// 獎項金額
 const prizeAmounts = {
   1: 30000, 2: 20000, 3: 15000, 4: 10000,
   5: 8000, 6: 7000, 7: 6000, 8: 5000,
   12: 3600, 13: 9000
 };
 
-//獎項數量
+// 獎項數量
 const prizeLimits = {
   '1': 1, '2': 1, '3': 1, '4': 1,
   '5': 2, '6': 2, '7': 6, '8': 6,
   '9': Infinity, '10': Infinity, '11': Infinity,
   '12': 15, '13': 2
+};
+
+// 獎項狀態控制
+function getPrizeRemaining(value) {
+  const limit = prizeLimits[value];
+
+  // 無限次獎項不顯示剩餘人數
+  if (!Number.isFinite(limit)) return null;
+
+  const drawnCount = winnerData.filter(
+    record => String(record.prizeValue) === String(value)
+  ).length;
+
+  return Math.max(limit - drawnCount, 0);
+};
+
+function updatePrizeLabels() {
+  document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
+    const value = item.dataset.value;
+
+    // 保存原始獎項名稱，例如「八獎」
+    if (!item.dataset.prizeName) {
+      item.dataset.prizeName = item.textContent.trim();
+    }
+
+    const prizeName = item.dataset.prizeName;
+    const remaining = getPrizeRemaining(value);
+
+    // 一般有限制數量的獎項
+    item.textContent =
+      remaining === null
+        ? prizeName
+        : `${prizeName}(${remaining})`;
+
+    // 如果目前就是選中的獎項，同步更新上方大標題
+    if (prizeBtn.dataset.value === value) {
+      prizeBtn.textContent = item.textContent;
+    };
+  });
+};
+
+
+function getNextPrizeItem(currentValue) {
+  const items = [
+    ...document.querySelectorAll('.dropdown-menu .dropdown-item')
+  ];
+
+  const currentIndex = items.findIndex(
+    item => item.dataset.value === String(currentValue)
+  );
+
+  if (currentIndex === -1) {
+    return null;
+  };
+
+  // 從目前獎項的下一個開始，依照 HTML 順序往下尋找
+  for (let i = currentIndex + 1; i < items.length; i++) {
+    const item = items[i];
+    const value = item.dataset.value;
+
+    const limit = prizeLimits[value];
+
+    // Infinity 類型跳過
+    if (!Number.isFinite(limit)) {
+      continue;
+    };
+
+    // 已經抽完的獎項也跳過
+    const remaining = getPrizeRemaining(value);
+
+    if (remaining <= 0) {
+      continue;
+    };
+    // 找到第一個： 有人數限制 + 還有剩餘名額
+    return item;
+  };
+  // 後方沒有可自動切換的獎項
+  return null;
+};
+
+// 切換下一個獎項
+let nextPrizeTimer = null;
+function scheduleNextPrize(currentValue) {
+  clearTimeout(nextPrizeTimer);
+
+  const remaining = getPrizeRemaining(currentValue);
+
+  // 尚未抽完 or Infinity 類型，不切換
+  if (remaining === null || remaining > 0) return;
+
+  const nextItem = getNextPrizeItem(currentValue);
+
+  // 已經是最後一個獎項
+  if (!nextItem) return;
+
+  nextPrizeTimer = setTimeout(() => {
+    // 防止這 10 秒內主持人已經自己切換獎項
+    if (prizeBtn.dataset.value !== String(currentValue)) {
+      return;
+    };
+
+    nextItem.click();
+
+  }, 10000);
 };
 
 // 僅去除前後空白
@@ -746,9 +850,12 @@ fileInput?.addEventListener('change', event => {
   reader.readAsArrayBuffer(file);
 });
 
-/* 獎項選擇 */
+// 獎項選擇
 document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
   item.addEventListener('click', event => {
+    clearTimeout(nextPrizeTimer);
+    nextPrizeTimer = null;
+
     event.preventDefault();
     const value = item.dataset.value;
     prizeBtn.dataset.value = value;
@@ -866,9 +973,18 @@ balanceBtn?.addEventListener('click', () => {
 function buildDrawContext(value) {
   const amount = Number(amountInput?.value || 0);
   const extraBonus = Number(balanceInput?.value || 0);
+  const selectedPrizeItem = document.querySelector(
+    `.dropdown-item[data-value="${value}"]`
+  ); // 找到目前選取的獎項
+
+  const prizeName =
+    selectedPrizeItem?.dataset.prizeName ||
+    selectedPrizeItem?.textContent.trim() ||
+    prizeBtn.textContent.trim(); // 取得原始獎項名稱
+
   const context = {
     value,
-    prizeName: prizeBtn.textContent.trim(),
+    prizeName,
     amount,
     extraBonus,
     shareSource: null,
@@ -1035,6 +1151,8 @@ async function doDraw(context) {
     }
     lotteryButton?.classList.remove("pull");
     recordWinner(winner, context);
+
+    updatePrizeLabels();
     drawRecorded = true;
     if (context.value === '9') {
       amountInput.value = '';
@@ -1047,6 +1165,7 @@ async function doDraw(context) {
     playAudio(winSound);
     try {
       await announceWinner(winner);
+      scheduleNextPrize(context.value);
     } catch (error) {
       console.error('中獎紀錄已完成，但無法顯示揭曉動畫。', error);
       showToast('中獎紀錄已完成，但揭曉動畫無法顯示。');
@@ -1136,6 +1255,7 @@ function recordWinner(winner, context) {
   };
   renderWinnerList();
   updateCounts();
+  updatePrizeLabels();
 };
 
 // 寫入得獎名單
@@ -1288,6 +1408,7 @@ $('#clear-all-btn')?.addEventListener('click', async () => {
   localStorage.removeItem('winnerData');
 
   updateCounts();
+  updatePrizeLabels();
 
   showToast('所有中獎紀錄已清除。');
 });
@@ -1300,6 +1421,7 @@ $('#clear-all-btn')?.addEventListener('click', async () => {
     if (!savedState) {
       renderWinnerList();
       updateCounts();
+      updatePrizeLabels();
       return;
     };
 
@@ -1335,3 +1457,5 @@ $('#clear-all-btn')?.addEventListener('click', async () => {
     );
   };
 })();
+
+updatePrizeLabels();
