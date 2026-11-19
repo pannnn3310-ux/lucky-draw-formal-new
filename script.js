@@ -1071,6 +1071,7 @@ async function doDraw(context) {
   };
 };
 
+// 登記得獎者
 function recordWinner(winner, context) {
   const value = context.value;
   const source = context.shareSource;
@@ -1120,6 +1121,7 @@ function recordWinner(winner, context) {
   updateCounts();
 };
 
+// 寫入得獎名單
 function createWinnerItem(record) {
   const item = document.createElement('li');
   const received = recordReceivedAmount(record);
@@ -1173,14 +1175,14 @@ function createWinnerItem(record) {
           【${escapeHtml(record.bonus2Source)}】
         </p>`
       : ''
-    };
+    }
 
     ${shared
       ? `<p style="color:#413d376e;">
           【已分享：${shared.toLocaleString()}】
         </p>`
       : ''
-    };
+    }
   `;
 
   return item;
