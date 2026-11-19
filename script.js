@@ -42,6 +42,8 @@ const slotMachineShell = $('.slot-machine-shell');
 const drawSound = $('#draw-sound');
 const winSound = $('#win-sound');
 const donSound = $('#win-don');
+const specialPrizeAmountInput = $('#special-prize-amount-input');
+const specialBalanceInput = $('#special-balance-input');
 let slotBulbChaseId = null;
 let slotBulbs = [];
 
@@ -352,6 +354,21 @@ async function handleShareAmountInput() {
   };
 };
 
+// 分享金額、現金加碼低於2000提醒
+function checkSpecialAmount(input) {
+    const value = Number(input.value);
+    input.classList.toggle(
+        'is-invalid',
+        input.value !== '' && value < 2000
+    );
+};
+
+specialPrizeAmountInput.addEventListener('input', () => {
+    checkSpecialAmount(specialPrizeAmountInput);
+});
+specialBalanceInput.addEventListener('input', () => {
+    checkSpecialAmount(specialBalanceInput);
+});
 
 // 清空並新渲染得獎者名單
 function renderWinnerList() {
