@@ -172,7 +172,7 @@ function showToast(message) {
   new bootstrap.Toast(element).show();
 };
 
-
+// toast確認通知框
 function askConfirmToast(message, yesLabel, noLabel) {
   const body = $('#confirm-toast-body');
   const element = $('#confirm-toast');
@@ -180,7 +180,7 @@ function askConfirmToast(message, yesLabel, noLabel) {
   const noButton = $('#confirm-no');
   if (!body || !element || !yesButton || !noButton) {
     throw new Error('找不到確認通知元件');
-  }
+  };
 
   body.innerHTML = message;
   yesButton.textContent = yesLabel;
@@ -204,35 +204,43 @@ function askConfirmToast(message, yesLabel, noLabel) {
     noButton.addEventListener('click', onNo, { once: true });
     toast.show();
   });
-}
+};
+
+// 音效特區
 function playAudio(audio) {
   if (!audio) return;
   audio.currentTime = 0;
   audio.play().catch(() => {});
-}
+};
+
 function stopAudio(audio) {
   if (!audio) return;
   audio.pause();
   audio.currentTime = 0;
-}
+};
+
 function playDon() {
   if (!donSound) return;
   const audio = new Audio(donSound.src);
   audio.play().catch(() => {});
-}
+};
 
+
+// 檢查名單是否重複
 function duplicates(values) {
   const seen = new Set();
   const duplicate = new Set();
   values.forEach(value => seen.has(value) ? duplicate.add(value) : seen.add(value));
   return [...duplicate];
-}
+};
 
+// 產生唯一的中獎紀錄ID
 function makeRecordId() {
   if (globalThis.crypto?.randomUUID) return crypto.randomUUID();
   return `record-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
+};
 
+// 產生隨機抽獎碼
 function randomIndex(length) {
   if (!Number.isInteger(length) || length <= 0) throw new Error('無有效抽獎人數');
   if (!globalThis.crypto?.getRandomValues) return Math.floor(Math.random() * length);
@@ -240,22 +248,22 @@ function randomIndex(length) {
   const buffer = new Uint32Array(1);
   do crypto.getRandomValues(buffer); while (buffer[0] >= limit);
   return buffer[0] % length;
-}
+};
 
 // 計算該中獎紀錄已領取的金額，若尚未領取則回傳 0。
 function recordReceivedAmount(record) {
   return Number(record.prizeAmounts || 0) + Number(record.specialBonus || 0);
-}
+};
 
 // 計算該中獎紀錄已分享出去的金額，若尚未分享則回傳 0。
 function recordSharedAmount(record) {
   return Number(record.sharedAmount || 0);
-}
+};
 
 // 計算該中獎紀錄尚可分享的金額，若已分享完畢則回傳 0。
 function recordAvailableAmount(record) {
   return Math.max(Number(record.prizeAmounts || 0) - recordSharedAmount(record), 0);
-}
+};
 
 // 根據分享輸入欄位的 dataset，找出對應的中獎紀錄。
 function findShareSource() {
@@ -263,9 +271,9 @@ function findShareSource() {
   if (recordId) return winnerData.find(record => record.recordId === recordId) || null;
   const id = normalizeId(shareInput?.dataset.id);
   return id ? winnerData.slice().reverse().find(record => normalizeId(record.id) === id) || null : null;
-}
+};
 
-
+// 檢查分享金額是否超出額度
 let shareOveragePromptOpen = false;
 async function handleShareAmountInput() {
   if (
@@ -322,7 +330,7 @@ async function handleShareAmountInput() {
       findShareSource() !== source
     ) {
       return;
-    }
+    };
 
     // 分享金額最多只保留可分享餘額
     amountInput.value = String(available);
@@ -337,23 +345,27 @@ async function handleShareAmountInput() {
 
       // 超出金額累加至現金加碼
       balanceInput.value = String(currentBonus + excess);
-    }
+    };
   } finally {
     amountInput.disabled = false;
     shareOveragePromptOpen = false;
-  }
-}
+  };
+};
+
+
+// 清空並新渲染得獎者名單
 function renderWinnerList() {
   winnerList.innerHTML = '';
   winnerData.slice().reverse().forEach(record => winnerList.appendChild(createWinnerItem(record)));
-}
+};
+
 
 const reels = Array.from({ length: REEL_COUNT }, () => ({
-  el: document.createElement('div'),
+  el: document.createElement('div'), // DIV元素
   items: [],
-  positionPx: 0,
-  cycleHeight: 0,
-  highlightedItemIndex: -1
+  positionPx: 0, // 隨著動畫播放不斷更新。
+  cycleHeight: 0, // 記錄轉輪目前在垂直方向上滾動了多少像素，計算滾到底部後無縫接回頂部的循環邏輯
+  highlightedItemIndex: -1 // 記錄目前被選中或停在正中央（中獎線）的項目索引值
 }));
 
 reels.forEach(reel => {
@@ -361,13 +373,13 @@ reels.forEach(reel => {
   scrollArea?.appendChild(reel.el);
 });
 
-// ===== 四個固定停止框 =====
+// 四個固定停止框
 const stopIndicators = Array.from(
   { length: REEL_COUNT },
   (_, index) => {
     const indicator = document.createElement('div');
 
-    indicator.className = 'stop-indicator';
+    indicator.className = 'stop-indicator'; // 中獎紅框
     indicator.dataset.reelIndex = index;
 
     scrollViewport?.appendChild(indicator);
@@ -376,6 +388,7 @@ const stopIndicators = Array.from(
   }
 );
 
+// 把所有轉輪裡的舊獎項清空，把滾動位置與狀態全部歸零
 function clearReels() {
   reels.forEach(reel => {
     reel.el.innerHTML = '';
@@ -386,13 +399,13 @@ function clearReels() {
     reel.el.style.zIndex = '';
     reel.el.style.transform = 'translate3d(0, 0, 0)';
   });
-}
+};
 
+
+// 純視覺隨機序列：四軸各自產生 0～9，與名單流水碼完全脫鉤，且將同一段序列複製兩次，讓待機自動滾動可以無縫回捲
 function populateReels() {
   clearReels();
 
-  // 純視覺隨機序列：四軸各自產生 0～9，與名單流水碼完全脫鉤。
-  // 同一段序列複製兩次，讓待機自動滾動可以無縫回捲。
   const baseItemCount = Math.max(120, Math.ceil(MIN_REEL_ITEMS / 2));
 
   reels.forEach(reel => {
@@ -413,20 +426,21 @@ function populateReels() {
     reel.positionPx = 0;
     applyReelPosition(reel);
   });
-}
+};
 
+// 更新畫面上垂直位置，使滾輪看起來正在向上滾動
 function applyReelPosition(reel) {
   reel.el.style.transform = `translate3d(0, -${reel.positionPx}px, 0)`;
-}
+};
 
-
+// 停下時自動定位
 function normalizeAutoPosition(reel) {
   if (!reel.cycleHeight) return;
   reel.positionPx =
     ((reel.positionPx % reel.cycleHeight) +
       reel.cycleHeight) %
     reel.cycleHeight;
-}
+};
 
 // 導正抽獎邏輯
 function normalizeStoppedReel(reel, targetDigit) {
@@ -436,46 +450,40 @@ function normalizeStoppedReel(reel, targetDigit) {
   const centerOffset =
     viewport.offsetHeight / 2 - ITEM_HEIGHT / 2;
 
-  /*
-   * 將抽獎後累積很大的 function createWinnerItem(record) 
-   * 立即換算回基本循環範圍。
-   */
+  // 將抽獎後累積很大的 function createWinnerItem 立即換算回基本循環範圍
   reel.positionPx =
     ((reel.positionPx % reel.cycleHeight) + reel.cycleHeight) %
     reel.cycleHeight;
 
-  /*
-   * 由正規化後的位置重新找出畫面中央格。
-   */
+  // 由正規化後的位置重新找出畫面中央格。
   const normalizedItemIndex = Math.round(
     (reel.positionPx + centerOffset) / ITEM_HEIGHT
   );
 
-  /*
-   * 保證正規化後的中央格仍然是本次中獎數字。
-   */
+  // 保證正規化後的中央格仍然是本次中獎數字。
   if (reel.items[normalizedItemIndex]) {
     reel.items[normalizedItemIndex].textContent =
       String(targetDigit);
-  }
+  };
 
   applyReelPosition(reel);
 
   return normalizedItemIndex;
-}
+};
 
+
+// 匯入時滾動設定
 function startAutoScroll() {
   if (autoScrollId !== null || !eligibleNames.length || isDrawing) return;
 
-  // 先直接啟動一幀，並以 performance.now() 作為基準。
-  // 這樣 Excel 匯入完成後不依賴其他事件，就會立即開始移動。
+  // 先直接啟動一幀，並以 performance.now() 作為基準，這樣 Excel 匯入完成後不依賴其他事件，就會立即開始移動
   lastAutoTime = performance.now();
 
   function frame(now) {
     if (isDrawing) {
       autoScrollId = null;
       return;
-    }
+    };
 
     const delta = Math.max(0, Math.min(now - lastAutoTime, 40));
     lastAutoTime = now;
@@ -484,21 +492,21 @@ function startAutoScroll() {
       if (!reel.items.length) return;
       reel.positionPx += AUTO_SPEED * (delta / 1000);
       normalizeAutoPosition(reel);
-      applyReelPosition(reel);
+      applyReelPosition(reel); // 算這一幀滾輪在哪
     });
 
-    autoScrollId = requestAnimationFrame(frame);
-  }
+    autoScrollId = requestAnimationFrame(frame); // 要求瀏覽器下一幀才呼叫frame
+  };
 
-  autoScrollId = requestAnimationFrame(frame);
-}
+  autoScrollId = requestAnimationFrame(frame); // 啟動第一幀
+};
 
 function stopAutoScroll() {
   if (autoScrollId !== null) {
     cancelAnimationFrame(autoScrollId);
     autoScrollId = null;
-  }
-}
+  };
+};
 
 // 確保滾輪無縫循環
 function calculateTargetPosition(reel, targetDigit, extraLoops) {
@@ -534,9 +542,9 @@ function extendReels(requiredLength) {
       symbol.textContent = String(randomIndex(10));
       reel.el.appendChild(symbol);
       reel.items.push(symbol);
-    }
+    };
   });
-}
+};
 
 function spinReel(
   reel,
@@ -584,41 +592,34 @@ function spinReel(
               decelerationProgress / 2 +
               Math.sin(Math.PI * decelerationProgress) / (2 * Math.PI)
             );
-        }
+        };
 
         applyReelPosition(reel);
 
         requestAnimationFrame(frame);
         return;
-      }
+      };
 
-       //先精確走到原始計算出的停止位置
+       // 先精確走到原始計算出的停止位置
         reel.positionPx = target.targetPositionPx;
 
-        /*
-        * 停止當下就將位置正規化回基本循環，
-        * 不要等重新啟動自動滾動後才回捲。
-        */
+        //停止當下就將位置正規化回基本循環，不要等重新啟動自動滾動後才回捲
         const normalizedItemIndex = normalizeStoppedReel(
           reel,
           targetDigit
         );
 
-        /*
-        * 框選正規化後真正位於中央的格子。
-        */
+        // 框選正規化後真正位於中央的格子。
         reel.highlightedItemIndex = normalizedItemIndex;
-
         if (
           normalizedItemIndex !== null &&
           reel.items[normalizedItemIndex]
         ) {
           reel.items[normalizedItemIndex]
             .classList.add('winner-highlight');
-        }
+        };
 
         reel.el.style.zIndex = '21';
-
         onStop?.();
 
       // 在同一個繪製週期內更新滾輪與停止框，避免框線延後一幀。
@@ -628,16 +629,16 @@ function spinReel(
       requestAnimationFrame(() => {
         resolve();
       });
-    }
+    };
 
     requestAnimationFrame(frame);
   });
-}
+};
 
 function highlightReel(index) {
   stopIndicators[index]
     ?.classList.add('is-visible');
-}
+};
 
 function clearReelHighlights() {
   reels.forEach(reel => {
@@ -646,7 +647,7 @@ function clearReelHighlights() {
     reel.highlightedItemIndex = -1;
     reel.el.style.zIndex = '';
   });
-}
+};
 
 fileInput?.addEventListener('change', event => {
   const file = event.target.files?.[0];
@@ -655,7 +656,7 @@ fileInput?.addEventListener('change', event => {
     fileInput.value = '';
     showToast('抽獎進行中，請待本次抽獎完成後再匯入名單。');
     return;
-  }
+  };
 
   isImportingNames = true;
   const reader = new FileReader();
@@ -697,7 +698,7 @@ fileInput?.addEventListener('change', event => {
         updateCounts();
         showToast(`發現重複工號：${duplicateIds.join('、')}`);
         return;
-      }
+      };
 
       eligibleNames = allNames.filter(person => /^\d{4}$/.test(person.drawCode));
       const duplicateCodes = duplicates(eligibleNames.map(person => person.drawCode));
@@ -707,7 +708,7 @@ fileInput?.addEventListener('change', event => {
         updateCounts();
         showToast(`發現重複抽獎碼：${duplicateCodes.join('、')}`);
         return;
-      }
+      };
 
       populateReels();
       startAutoScroll();
@@ -718,7 +719,7 @@ fileInput?.addEventListener('change', event => {
       showToast('Excel 匯入失敗，請檢查檔案格式。');
     } finally {
       isImportingNames = false;
-    }
+    };
   };
   reader.onerror = () => {
     isImportingNames = false;
@@ -762,7 +763,7 @@ document.querySelectorAll('.dropdown-menu .dropdown-item').forEach(item => {
   });
 });
 
-/* 現金加碼：完整名單搜尋，以工號 dataset.id 驗證，不要求抽獎碼。 */
+// 現金加碼：完整名單搜尋，以工號 dataset.id 驗證，不要求抽獎碼
 function renderCashMatches(keyword) {
   cashDropdown.innerHTML = '';
   const key = keyword.toLowerCase();
@@ -784,7 +785,7 @@ function renderCashMatches(keyword) {
     cashDropdown.appendChild(row);
   });
   cashDropdown.style.display = matches.length ? 'block' : 'none';
-}
+};
 
 cashInput?.addEventListener('input', () => {
   cashInput.dataset.id = '';
@@ -798,15 +799,15 @@ cashInput?.addEventListener('input', () => {
 function getCashProvider() {
   const id = normalizeId(cashInput?.dataset.id);
   return id ? allNames.find(person => normalizeId(person.id) === id) || null : null;
-}
+};
 
-/* 幸運分享：只選仍有可分享餘額的既有中獎紀錄。 */
+// 幸運分享：只選仍有可分享餘額的既有中獎紀錄
 function renderShareMatches() {
   shareDropdown.innerHTML = '';
   if (shareInput.readOnly) {
     shareDropdown.style.display = 'none';
     return;
-  }
+  };
 
   const keyword = shareInput.value.trim().toLowerCase();
   const shareable = winnerData.slice().reverse().filter(record => recordAvailableAmount(record) > 0);
@@ -831,7 +832,7 @@ function renderShareMatches() {
   });
   shareDropdown.style.display = matches.length ? 'block' : 'none';
   if (!shareable.length) showToast('目前沒有可分享餘額的中獎者。');
-}
+};
 shareInput?.addEventListener('focus', renderShareMatches);
 shareInput?.addEventListener('input', () => {
   shareInput.dataset.id = '';
@@ -859,37 +860,38 @@ function buildDrawContext(value) {
   if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(extraBonus) || extraBonus < 0) {
     showToast('金額不可為負數或低於2000元。');
     return null;
-  }
+  };
   if (value === '9') {
     context.shareSource = findShareSource();
     if (!context.shareSource || amount <= 0) {
       showToast('請從清單選擇分享人並輸入分享金額。');
       return null;
-    }
+    };
     const available = recordAvailableAmount(context.shareSource);
     if (amount > available) {
       showToast(`分享金額超過可用餘額。最多可分享 ${available.toLocaleString()} 元。`);
       amountInput.focus();
       return null;
-    }
-  }
+    };
+  };
   if (value === '10') {
     context.cashProvider = getCashProvider();
     if (!context.cashProvider) {
       showToast('請從完整名單點選一位現金加碼人。');
       return null;
-    }
+    };
     if (amount <= 0) {
       showToast('請輸入現金加碼金額。');
       return null;
-    }
-  }
+    };
+  };
   if (value === '11' && amount <= 0) {
     showToast('請輸入金額。');
     return null;
-  }
+  };
   return context;
-}
+};
+
 async function requestDraw(event) {
   event?.preventDefault();
   event?.stopPropagation();
@@ -904,7 +906,7 @@ async function requestDraw(event) {
   const context = buildDrawContext(value);
   if (!context) return;
   await doDraw(context);
-}
+};
 document.querySelectorAll('.lever .prize-btn').forEach(button => {
   button.addEventListener('click', requestDraw);
 });
@@ -914,7 +916,7 @@ $('#start-draw-btn')?.addEventListener('click', requestDraw);
 function announceWinner(winner) {
   if (!winnerAnnouncement || !winnerAnnouncementCode || !winnerAnnouncementName) {
     throw new Error('找不到中獎揭曉元件');
-  }
+  };
 
   winnerAnnouncementCode.textContent = winner.drawCode;
   winnerAnnouncementName.textContent = `🎉🎉 ${winner.dept} - ${winner.name} 🎉🎉`;
@@ -932,7 +934,7 @@ function announceWinner(winner) {
       resolve();
     }, 6200);
   });
-}
+};
 
 let postDrawTimer = null; // 放在函式外部管理收尾計時器
 async function doDraw(context) {
@@ -950,19 +952,20 @@ async function doDraw(context) {
   if (!winner) {
     showToast('抽獎碼與目前名單不一致，已取消本次抽獎。');
     return;
-  }
+  };
   if (!isCurrentEligibleEntry(winner)) {
     showToast('抽獎資料與目前名單不一致，已取消本次抽獎。');
     return;
-  }
+  };
   const lotteryButton = document.querySelector(".lottery-button");
   let drawRecorded = false;
   isDrawing = true;
+  document.querySelector('.main')?.classList.add('active');
 
   if (context.value === '9') {
     if (shareInput) shareInput.readOnly = true;
     if (shareDropdown) shareDropdown.style.display = 'none';
-  }
+  };
   $('#start-draw-btn')?.setAttribute('disabled', 'disabled');
   if (fileInput) fileInput.disabled = true;
   lotteryButton?.classList.add("pull");
@@ -1022,7 +1025,7 @@ async function doDraw(context) {
       balanceInput.style.display = 'none';
       balanceBtn.style.display = 'block';
       cashBonusLabel.style.display = 'none';
-    }
+    };
     stopAudio(drawSound);
     playAudio(winSound);
     try {
@@ -1030,12 +1033,12 @@ async function doDraw(context) {
     } catch (error) {
       console.error('中獎紀錄已完成，但無法顯示揭曉動畫。', error);
       showToast('中獎紀錄已完成，但揭曉動畫無法顯示。');
-    }
+    };
   } catch (error) {
     console.error(error);
     if (!drawRecorded) {
       drawnWinners.delete(winner.id);
-    }
+    };
     showToast(
       drawRecorded
         ? '中獎紀錄已完成，但後續畫面處理發生錯誤。'
@@ -1048,6 +1051,7 @@ async function doDraw(context) {
     );
   } finally {
     isDrawing = false;
+    document.querySelector('.main')?.classList.remove('active');
     stopAudio(drawSound); // 確保任何異常中斷都會關閉抽獎音效
     if (context.value === '9') shareInput.readOnly = false;
     stopSlotBulbChase();
@@ -1064,20 +1068,20 @@ async function doDraw(context) {
       clearReelHighlights();
       startAutoScroll();
     }, 1000);
-  }
-}
+  };
+};
 
 function recordWinner(winner, context) {
   const value = context.value;
   const source = context.shareSource;
   if (!isCurrentEligibleEntry(winner)) {
     throw new Error('中獎者或流水碼已不在目前名單中，已取消登記。');
-  }
+  };
   if (value === '9') {
     if (!source || !winnerData.includes(source)) throw new Error('幸運分享來源已失效');
     const available = recordAvailableAmount(source);
     if (context.amount > available) throw new Error(`分享金額超過餘額：${available}`);
-  }
+  };
   const fixedAmount = Number(prizeAmounts[value] || 0);
   const record = {
     recordId: makeRecordId(),
@@ -1111,10 +1115,10 @@ function recordWinner(winner, context) {
     winnerData.pop();
     if (source) source.sharedAmount = previousSharedAmount;
     throw error;
-  }
+  };
   renderWinnerList();
   updateCounts();
-}
+};
 
 function createWinnerItem(record) {
   const item = document.createElement('li');
@@ -1148,7 +1152,7 @@ function createWinnerItem(record) {
     `;
 
     return item;
-  }
+  };
 
   item.innerHTML = `
     <p>
@@ -1169,18 +1173,18 @@ function createWinnerItem(record) {
           【${escapeHtml(record.bonus2Source)}】
         </p>`
       : ''
-    }
+    };
 
     ${shared
       ? `<p style="color:#413d376e;">
           【已分享：${shared.toLocaleString()}】
         </p>`
       : ''
-    }
+    };
   `;
 
   return item;
-}
+};
 
 function updateCounts() {
   const eligibleIds = new Set(eligibleNames.map(person => person.id));
@@ -1188,7 +1192,7 @@ function updateCounts() {
   $('#total-count').textContent = eligibleNames.length;
   $('#win-count').textContent = won;
   $('#remain-count').textContent = Math.max(eligibleNames.length - won, 0);
-}
+};
 
 function saveState() {
   // 將紀錄與已中獎工號合併為單一寫入，避免兩個儲存鍵只更新一半。
@@ -1201,7 +1205,7 @@ function saveState() {
     `${STORAGE_KEY}_lastExportAt`,
     new Date().toISOString()
   );
-}
+};
 
 $('#export-btn')?.addEventListener('click', () => {
   if (!winnerData.length) return showToast('沒有中獎名單可匯出。');
@@ -1247,7 +1251,7 @@ $('#clear-all-btn')?.addEventListener('click', async () => {
   if (!winnerData.length) {
     showToast('目前沒有中獎紀錄可清除。');
     return;
-  }
+  };
 
   const confirmed = await askConfirmToast(
     '確定清除所有中獎紀錄？',
@@ -1262,8 +1266,6 @@ $('#clear-all-btn')?.addEventListener('click', async () => {
   winnerList.innerHTML = '';
 
   localStorage.removeItem(`${STORAGE_KEY}_state`);
-  localStorage.removeItem(`${STORAGE_KEY}_winnerData`);
-  localStorage.removeItem(`${STORAGE_KEY}_drawnWinners`);
   localStorage.removeItem('winnerData');
 
   updateCounts();
@@ -1273,35 +1275,44 @@ $('#clear-all-btn')?.addEventListener('click', async () => {
 
 (function restoreState() {
   try {
-    // 優先讀取合併儲存格式；沒有時沿用舊版兩個儲存鍵以相容既有資料。
-    const savedState = localStorage.getItem(`${STORAGE_KEY}_state`);
-    const savedWinners = localStorage.getItem(`${STORAGE_KEY}_winnerData`);
-    const savedDrawn = localStorage.getItem(`${STORAGE_KEY}_drawnWinners`);
-    if (savedState) {
-      const parsed = JSON.parse(savedState);
-      winnerData = Array.isArray(parsed.winnerData) ? parsed.winnerData : [];
-      drawnWinners = new Set(Array.isArray(parsed.drawnWinners) ? parsed.drawnWinners : []);
-    }
-    if (savedWinners) {
-      if (!savedState) {
-        const parsed = JSON.parse(savedWinners);
-        winnerData = Array.isArray(parsed) ? parsed : [];
-      }
-    }
-    if (savedDrawn && !savedState) drawnWinners = new Set(JSON.parse(savedDrawn));
+    const savedState =
+      localStorage.getItem(`${STORAGE_KEY}_state`);
+
+    if (!savedState) {
+      renderWinnerList();
+      updateCounts();
+      return;
+    };
+
+    const parsed = JSON.parse(savedState);
+
+    winnerData =
+      Array.isArray(parsed.winnerData)
+        ? parsed.winnerData
+        : [];
+
+    drawnWinners = new Set(
+      Array.isArray(parsed.drawnWinners)
+        ? parsed.drawnWinners
+        : []
+    );
+
+    // 以正式中獎紀錄補齊防重名單
     winnerData.forEach(record => {
-      record.recordId ||= makeRecordId();
-      record.createdAt ||= '';
-      record.sharedAmount = Number(record.sharedAmount ?? record.balance ?? 0);
-      delete record.balance;
-      delete record.bonus2Id;
-      record.prizeAmounts = Number(record.prizeAmounts || 0);
-      record.specialBonus = Number(record.specialBonus || 0);
-      // 以中獎紀錄補齊已中獎工號，避免舊版分開儲存時狀態不同步造成重複中獎。
-      if (record.id != null) drawnWinners.add(record.id);
+      if (record.id != null) {
+        drawnWinners.add(
+          normalizeId(record.id)
+        );
+      };
     });
+
     renderWinnerList();
+    updateCounts();
+
   } catch (error) {
-    console.error('還原資料失敗：', error);
-  }
+    console.error(
+      '還原資料失敗：',
+      error
+    );
+  };
 })();

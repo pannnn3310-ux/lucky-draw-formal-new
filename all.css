@@ -97,11 +97,9 @@ ol, ul {
   border-right: none;
 }
 
-/* ==================================================
-   拉霸桿
-   仿 Lucky Slot 紅球 + 銀色金屬桿 + 金色固定座
-   ================================================== */
 
+/* 拉霸桿，仿 Lucky Slot 紅球 + 銀色金屬桿 + 金色固定座
+ */
 .stick {
     position: relative;
     z-index: 30;
@@ -113,12 +111,7 @@ ol, ul {
     overflow: visible;
     background: transparent;
 }
-
-
-/* =========================
-   金色固定座
-   ========================= */
-
+/* 金色固定座 */
 .stick::before {
     content: "";
     position: absolute;
@@ -150,20 +143,31 @@ ol, ul {
         inset -12px -8px 18px rgba(111, 35, 4, 0.28),
         7px 8px 0 rgba(91, 24, 7, 0.55),
         8px 13px 20px rgba(0, 0, 0, 0.35);
+};
+/* 紅球旁邊的小星星 */
+.stick::after {
+    content: "✦";
+    position: absolute;
+    top: 56px;
+    left: 87px;
+    color: #ffd84c;
+    font-size: 30px;
+    line-height: 1;
+    text-shadow:
+        0 0 8px #ff8a20,
+        0 0 14px #ffe66b;
+    animation: leverSpark 1.5s infinite ease-in-out;
+    pointer-events: none;
 }
 
 
-/* =========================
-拉霸桿固定軌道
-   ========================= */
-
+/* 拉霸桿固定軌道 */
 .lottery-button {
     position: absolute;
     width: 26px;
     height: 230px;
     top: 20%;
     left: 10px;
-
     border: 4px solid #7e3516;
     border-radius: 18px;
     background:
@@ -177,23 +181,17 @@ ol, ul {
             #a55323 88%,
             #6b2b16 100%
         );
-
     box-shadow:
         inset 3px 0 3px rgba(255,255,255,.85),
         inset -4px 0 5px rgba(87,28,8,.35),
         7px 7px 0 rgba(78,22,9,.42),
         8px 11px 16px rgba(0,0,0,.35);
-
     transform: none;
     transition:
         height 0.45s cubic-bezier(.22,.8,.25,1),
         top 0.45s cubic-bezier(.22,.8,.25,1);
 }
-
-/* =========================
-拉霸紅色球頭
-   ========================= */
-
+/* 拉霸紅色球頭 */
 .lottery-button::after {
     content: "";
     position: absolute;
@@ -237,91 +235,44 @@ ol, ul {
 
     animation: leverGlow 1.8s infinite ease-in-out;
 }
-
-
-/* =========================
-球頭旁邊的小星光
-========================= */
-
-.stick::after {
-    content: "✦";
-
-    position: absolute;
-
-    top: 56px;
-    left: 87px;
-
-    color: #ffd84c;
-
-    font-size: 30px;
-    line-height: 1;
-
-    text-shadow:
-        0 0 8px #ff8a20,
-        0 0 14px #ffe66b;
-
-    animation: leverSpark 1.5s infinite ease-in-out;
-
-    pointer-events: none;
-}
-
 .lottery-button.pull {
     height: 55px;
     top: 55%;
 }
-
 /* 球永遠保持在桿子正中央 */
 .lottery-button.pull::after {
     top: -5px;
-
-    transform:
-        translateX(-50%)
-        scale(0.96);
+    transform: translateX(-50%) scale(0.96);
 }
 
 
 .trigger-draw {
     position: absolute;
-
     width: 96px;
     height: 96px;
-
     top: -62px;
     left: -39px;
-
     z-index: 5;
-
     border: 0;
     border-radius: 50%;
-
     background: transparent;
-
     cursor: pointer;
 }
-
-
 /* 鍵盤操作時才顯示焦點 */
-
 .trigger-draw:focus-visible {
     outline: 4px solid #fff1a6;
     outline-offset: 7px;
 }
-
-
 /* 不要讓 button 自己位移 */
-
 .trigger-draw:active {
     transform: none;
 }
 
 
-/* =========================
-   抽獎期間取消球頭閃光
-   ========================= */
 
+/* 抽獎期間取消球頭閃光 */
 .no-glow::after {
     animation: none;
-
     box-shadow:
         inset -12px -15px 18px rgba(98, 4, 10, 0.38),
         inset 8px 8px 12px rgba(255, 255, 255, 0.28),
@@ -329,36 +280,26 @@ ol, ul {
         8px 10px 0 rgba(81, 14, 9, 0.45);
 }
 
-
-/* =========================
-   紅球呼吸亮度
-   ========================= */
-
+/* 紅球呼吸亮度 */
 @keyframes leverGlow {
-
     0%,
     100% {
         filter: brightness(1);
     }
-
     50% {
         filter: brightness(1.17);
     }
 }
 
 
-/* =========================
-   小星光
-   ========================= */
 
+/* 小星光 */
 @keyframes leverSpark {
-
     0%,
     100% {
         transform: scale(0.85) rotate(0deg);
         opacity: 0.55;
     }
-
     50% {
         transform: scale(1.16) rotate(16deg);
         opacity: 1;
@@ -368,7 +309,6 @@ ol, ul {
 #prize-btn {
   position: relative;
 }
-
 #prize-btn.dropdown-toggle {
   font-size: 3.5rem;
   font-weight: 500;
@@ -380,7 +320,6 @@ ol, ul {
   box-shadow: none !important;
   background-color: transparent !important;
 }
-
 #prize-btn + .dropdown-menu {
   left: 50% !important;
   top: 100% !important;
@@ -437,6 +376,7 @@ ol, ul {
     box-shadow: 0 0 20px rgba(255, 77, 77, 0.7), 0 0 40px rgba(255, 77, 77, 0.5), 0 0 60px rgba(255, 77, 77, 0.3);
   }
 }
+
 .freeze-overlay {
   position: fixed;
   inset: 0;
@@ -446,7 +386,6 @@ ol, ul {
   pointer-events: none;
   transition: 0.3s ease;
 }
-
 .freeze-overlay.active {
   background: rgba(0, 0, 0, 0.4);
   -webkit-backdrop-filter: blur(4px);
@@ -479,6 +418,7 @@ ol, ul {
     box-shadow: 0 0 10px rgba(219, 219, 219, 0.858), 0 0 20px rgba(154, 154, 154, 0.901), 0 0 30px rgba(241, 241, 241, 0.928);
   }
 }
+
 #special-balance-btn {
   animation: start 3s infinite ease-in-out;
   text-shadow: 0 0 50px #fff, 0 0 150px #fff, 0 0 20px #fff;
@@ -503,7 +443,6 @@ ol, ul {
   z-index: 1;
   background: rgba(0, 0, 0, 0.2);
 }
-
 .bg-marquee-track {
   display: inline-block;
   white-space: nowrap;
@@ -527,7 +466,7 @@ ol, ul {
   padding-top: 80px;
 }/*# sourceMappingURL=all.css.map */
 
-/* 2026 四碼抽獎版 */
+/* 2027 四碼抽獎版 */
 .draw-code-title {
   margin-bottom: 18px;
   color: #fff;
@@ -540,7 +479,6 @@ ol, ul {
   --draw-highlight-color: #d64242;
   --draw-highlight-background: #d64242;
 }
-
 .slot .reel { flex: 1 1 25%; min-width: 0; }
 .slot .digit-symbol {
   font-size: 4.5rem;
@@ -548,11 +486,7 @@ ol, ul {
   color: #26384d;
   text-align: center;
 }
-
-
-
-
-/* ===== 拉霸停止同步修正 ===== */
+/* 拉霸停止同步修正 */
 .slot .symbol,
 .slot .digit-symbol {
   transition: none !important;
@@ -563,10 +497,7 @@ ol, ul {
   position: relative;
 }
 
-/* ==================================================
-   中獎紅色區域
-   紅框邊界對齊弧形分隔線
-   ================================================== */
+/* 中獎紅色區域紅框邊界對齊弧形分隔線 */
 .stop-indicator {
     position: absolute;
     top: 90px;
@@ -603,9 +534,10 @@ ol, ul {
 }
 .stop-indicator.is-visible { opacity: 1; }
 
-/* ===== 2026 Lucky Slot visual refresh ===== */
+/* Lucky Slot visual refresh */
 .slot-machine-shell {
   position: relative;
+  z-index: 10;
   margin: 0 auto;
   padding: 108px 30px 28px;
   max-width: 920px;
@@ -658,27 +590,20 @@ ol, ul {
   text-shadow:0 4px 0 #9e2418,0 0 10px #ffe16a;
 }
 .slot-machine-shell.hide-slot-crown .slot-crown { display:none; }
-/* ===== LUCKY SLOT 下方：幸運抽獎碼 ===== */
+/* LUCKY SLOT 下方：幸運抽獎碼 */
 
 .slot-subtitle {
     position: absolute;
     z-index: 5;
-
-    /* 放在 LUCKY SLOT 正下方 */
-    top: 40px;
+    top: 40px; /* 放在 LUCKY SLOT 正下方 */
     left: 50%;
     transform: translateX(-50%);
     min-width: 48%;
-    /* 文字 */
     color: #fff4c4;
-
     font-size: 2.5rem;
     font-weight: 900;
-
     letter-spacing: 0.22em;
-
     white-space: nowrap;
-
     /* 立體效果 */
     text-shadow:
         0 2px 0 #9a150f,
@@ -687,7 +612,6 @@ ol, ul {
 
 
 /* 左右星星 */
-
 .slot-subtitle span {
     display: inline-block;
     color: #ffd93d;
@@ -698,49 +622,33 @@ ol, ul {
         0 0 12px rgba(255, 220, 65, 0.8);
 }
 
-/* =========================
-燈泡容器共同設定
-   ========================= */
 
+/* 燈泡容器共同設定 */
 .slot-bulbs {
   position: absolute;
   z-index: 10;
   pointer-events: none;
 }
-
-
-/* =========================上下燈泡
-   ========================= */
-
+/* 上下燈泡 */
 .slot-bulbs:not(.slot-bulbs-side) {
   left: 34px;
   right: 34px;
   height: 16px;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-
-
 /* 上排位置 */
 .slot-bulbs-top {
   top: 8px;
 }
-
-
 /* 下排位置 */
 .slot-bulbs-bottom {
   left: 5px;
   right: 5px;
   bottom: 14px;
 }
-
-
-/* =========================
-左右燈泡
-   ========================= */
-
+/* 左右燈泡 */
 .slot-bulbs-side {
   top: 40px;
   bottom: 30px;
@@ -749,72 +657,51 @@ ol, ul {
   flex-direction: column;
   justify-content: space-between;
 }
-
-
 .slot-bulbs-left {
   left: 5px;
 }
-
 .slot-bulbs-right {
   right: 5px;
 }
 
-/* ==================================================
-單顆燈泡
-   ================================================== */
 
+/* 單顆燈泡 */
 .slot-bulb {
   position: relative;
-
   display: block;
   flex: 0 0 16px;
-
   width: 16px;
   height: 16px;
-
   border-radius: 50%;
-
   background:
     radial-gradient(
       circle at center,
-
       #ffffff 0 15%,
       #fdf8c1 17% 27%,
       #dbc055 30% 44%,
       transparent 47%
     );
-
   transform-origin: center;
-
   animation:
     slotBulbBreath 2.5s ease-in-out infinite;
 }
 
 
-/* ==================================================
-星芒
-平常就存在
-   ================================================== */
 
+/* 星芒。平常就存在 */
 .slot-bulb::before,
 .slot-bulb::after {
   content: "";
   position: absolute;
   left: 50%;
   top: 50%;
-
   pointer-events: none;
-
   opacity: .65;
-
   transform:
     translate(-50%, -50%)
     scale(.88);
 }
-
-
 /* 橫向星芒 */
-
 .slot-bulb::before {
   width: 25px;
   height: 2px;
@@ -830,8 +717,6 @@ ol, ul {
       transparent 100%
     );
 }
-
-
 /* 縱向星芒 */
 .slot-bulb::after {
   width: 2px;
@@ -850,10 +735,7 @@ ol, ul {
 }
 
 
-/* ==================================================
-平常呼吸效果
-   ================================================== */
-
+/* 平常呼吸效果 */
 @keyframes slotBulbBreath {
   0%,
   100% {
@@ -863,8 +745,6 @@ ol, ul {
       drop-shadow(0 0 1px #ffd93f);
     transform: scale(.94);
   }
-
-
   50% {
     opacity: .92;
     filter:
@@ -875,10 +755,8 @@ ol, ul {
 }
 
 
-/* ==================================================
-抽獎追逐燈
-   ================================================== */
 
+/* 抽獎追逐燈 */
 .slot-bulb.is-lit {
   opacity: 1 !important;
   filter:
@@ -887,10 +765,7 @@ ol, ul {
     drop-shadow(0 0 4px #ffd93f) !important;
   transform: scale(1.12);
 }
-
-
 /* 抽獎時橫向星芒加長 */
-
 .slot-bulb.is-lit::before {
   width: 32px;
   opacity: 1;
@@ -898,10 +773,7 @@ ol, ul {
     translate(-50%, -50%)
     scale(1);
 }
-
-
 /* 抽獎時縱向星芒加長 */
-
 .slot-bulb.is-lit::after {
   height: 32px;
   opacity: 1;
@@ -909,7 +781,6 @@ ol, ul {
     translate(-50%, -50%)
     scale(1);
 }
-
 
 .slot-machine-shell::after {
   content:none;
@@ -960,7 +831,6 @@ ol, ul {
     z-index: 50;
     pointer-events: none;
 }
-
 .slot-curved-dividers span {
   position:absolute;
   top:-14px;
@@ -968,12 +838,10 @@ ol, ul {
   width:24px;
   border-radius:50%;
 }
-
 .slot-curved-dividers span:nth-child(1) {
   left:calc(25% - 12px);
   border-left:3px solid #a86637;
 }
-
 .slot-curved-dividers span:nth-child(2) {
   left:calc(50% - 1.5px);
   width:3px;
@@ -1024,9 +892,7 @@ ol, ul {
   .slot-subtitle { top:86px; }
 }
 
-/* ==================================================
-   中獎數字：白字固定顯示在紅底上
-   ================================================== */
+/* 中獎數字：白字固定顯示在紅底上 */
 .slot .digit-symbol.winner-highlight {
     position: relative;
     z-index: 60;
