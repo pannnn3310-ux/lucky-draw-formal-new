@@ -1044,7 +1044,19 @@ document.querySelectorAll('.lever .prize-btn').forEach(button => {
   button.addEventListener('click', requestDraw);
 });
 
+// 觸發抽獎
 $('#start-draw-btn')?.addEventListener('click', requestDraw);
+
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Enter' || event.repeat) return;
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  if (target.closest('input, textarea, select, [contenteditable="true"], button, a')) return;
+  if (document.querySelector('.toast.show')) return;
+
+  event.preventDefault();
+  requestDraw(event);
+});
 
 function announceWinner(winner) {
   if (!winnerAnnouncement || !winnerAnnouncementCode || !winnerAnnouncementName) {
