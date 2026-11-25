@@ -143,12 +143,12 @@ ol, ul {
         inset -12px -8px 18px rgba(111, 35, 4, 0.28),
         7px 8px 0 rgba(91, 24, 7, 0.55),
         8px 13px 20px rgba(0, 0, 0, 0.35);
-};
+}
 /* 紅球旁邊的小星星 */
 .stick::after {
     content: "✦";
     position: absolute;
-    top: 56px;
+    top: 25px;
     left: 87px;
     color: #ffd84c;
     font-size: 30px;
