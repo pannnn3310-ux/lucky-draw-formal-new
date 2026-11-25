@@ -158,20 +158,21 @@ function updatePrizeLabels() {
     // 保存原始獎項名稱，例如「八獎」
     if (!item.dataset.prizeName) {
       item.dataset.prizeName = item.textContent.trim();
-    }
+    };
 
     const prizeName = item.dataset.prizeName;
     const remaining = getPrizeRemaining(value);
 
-    // 一般有限制數量的獎項
-    item.textContent =
-      remaining === null
-        ? prizeName
-        : `${prizeName}(${remaining})`;
+    // 一般有限制數量的獎項，除了追加獎不顯示
+    const hideRemaining = value === '12' || remaining === null;
+
+    item.innerHTML = hideRemaining
+      ? prizeName
+      : `${prizeName} - <span class="fs-6">${remaining}名</span>`;
 
     // 如果目前就是選中的獎項，同步更新上方大標題
     if (prizeBtn.dataset.value === value) {
-      prizeBtn.textContent = item.textContent;
+        prizeBtn.innerHTML = item.innerHTML;
     };
   });
 };
