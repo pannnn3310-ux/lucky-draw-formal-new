@@ -168,7 +168,7 @@ function updatePrizeLabels() {
 
     item.innerHTML = hideRemaining
       ? prizeName
-      : `${prizeName} - <span class="fs-6">${remaining}名</span>`;
+      : `${prizeName} - ${remaining}名`;
 
     // 如果目前就是選中的獎項，同步更新上方大標題
     if (prizeBtn.dataset.value === value) {
